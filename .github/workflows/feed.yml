@@ -1,0 +1,37 @@
+name: Atualizar vídeos
+
+on:
+  schedule:
+    - cron: '7 */3 * * *'     # de 3 em 3 horas
+  push:
+    branches: [main]
+    paths: ['config.js', 'scripts/build-feed.mjs', '.github/workflows/feed.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: feed
+  cancel-in-progress: true
+
+jobs:
+  feed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/build-feed.mjs
+      - name: Commitar se mudou
+        run: |
+          if [ -n "$(git status --porcelain data.json)" ]; then
+            git config user.name  'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add data.json
+            git commit -m "Atualiza lista de vídeos"
+            git push
+          else
+            echo "nada mudou"
+          fi

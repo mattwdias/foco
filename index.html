@@ -205,10 +205,11 @@
   const markWatched = id => { const s = watched(); s.add(id); ls.set('watched', [...s].slice(-500)); };
 
   /* ---------- busca do RSS via proxy CORS (tenta vários) ---------- */
+  // Rede de segurança: só entram se o data.json faltar. (corsproxy.io saiu: passou a exigir chave.)
   const PROXIES = [
-    u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
     u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
-    u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u)
+    u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
+    u => 'https://r.jina.ai/' + u
   ];
 
   async function fetchText(url) {
@@ -236,8 +237,20 @@
     })).filter(v => v.id);
   }
 
+  /* ---------- lista pronta, gerada pela GitHub Action (sem CORS, sem proxy) ---------- */
+  let DATA = null;
+  async function loadData() {
+    try {
+      const r = await fetch('data.json', { cache: 'no-cache' });
+      if (r.ok) DATA = await r.json();
+    } catch {}
+  }
+
   // UULF + (ID do canal sem "UC") = playlist só com vídeos longos, sem Shorts
   async function loadChannel(ch) {
+    const pronto = DATA?.canais?.[ch.id];
+    if (pronto?.length) return pronto.slice(0, C.porCanal ?? 5);
+
     const key = 'cache:' + ch.id;
     const cached = ls.get(key, null);
     const ttl = (C.cacheHoras ?? 3) * 36e5;
@@ -267,6 +280,10 @@
     if (days > -30) return rtf.format(days, 'day');
     if (days > -365) return rtf.format(Math.round(days / 30), 'month');
     return rtf.format(Math.round(days / 365), 'year');
+  }
+  function agoCurto(iso) {
+    const h = Math.round((new Date(iso) - Date.now()) / 36e5);
+    return h > -1 ? 'agora' : h > -24 ? rtf.format(h, 'hour') : ago(iso);
   }
 
   function renderTabs() {
@@ -308,7 +325,9 @@
       b.onclick = () => { showWatched = true; render(); };
       $('end').appendChild(b);
     }
-    $('foot').textContent = failed.length ? 'Não consegui carregar: ' + failed.join(', ') + '. Tente recarregar.' : '';
+    $('foot').textContent = failed.length
+      ? 'Não consegui carregar: ' + failed.join(', ') + '. Tente recarregar.'
+      : DATA?.gerado ? 'Lista atualizada ' + agoCurto(DATA.gerado) + '.' : '';
   }
 
   let musicWas = false;
@@ -331,12 +350,16 @@
   renderTabs();
   $('grid').innerHTML = '<p class="msg">Carregando…</p>';
 
-  Promise.all(C.categorias.map(async cat => {
-    const settled = await Promise.all(cat.canais.map(ch =>
-      loadChannel(ch).catch(() => { failed.push(ch.nome || ch.id); return []; })));
-    const videos = settled.flat().sort((a, b) => new Date(b.published) - new Date(a.published));
-    return { nome: cat.nome, videos };
-  })).then(r => { results = r; render(); });
+  (async () => {
+    await loadData();
+    results = await Promise.all(C.categorias.map(async cat => {
+      const settled = await Promise.all(cat.canais.map(ch =>
+        loadChannel(ch).catch(() => { failed.push(ch.nome || ch.id); return []; })));
+      const videos = settled.flat().sort((a, b) => new Date(b.published) - new Date(a.published));
+      return { nome: cat.nome, videos };
+    }));
+    render();
+  })();
 })();
 </script>
 </body>
