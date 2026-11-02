@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Foco</title>
+<style>
+  :root {
+    --bg: #fbfbfd; --card: #ffffff; --text: #1d1d1f; --muted: #6e6e73;
+    --accent: #0071e3; --seg: rgba(120,120,128,.12); --shadow: 0 2px 12px rgba(0,0,0,.06);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #000; --card: #1c1c1e; --text: #f5f5f7; --muted: #98989d;
+      --accent: #2997ff; --seg: rgba(120,120,128,.24); --shadow: none; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; line-height: 1.4;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  main { max-width: 980px; margin: 0 auto; padding: 56px 24px 96px; }
+  header h1 { font-size: clamp(34px, 6vw, 56px); font-weight: 700; letter-spacing: -.03em; }
+  header p { color: var(--muted); font-size: 19px; margin-top: 6px; }
+
+  .tabs { display: inline-flex; gap: 2px; padding: 3px; margin: 36px 0 32px; background: var(--seg);
+    border-radius: 10px; max-width: 100%; overflow-x: auto; }
+  .tabs button { font: inherit; font-size: 14px; font-weight: 500; color: var(--text); border: 0;
+    background: transparent; padding: 7px 18px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+  .tabs button[aria-selected="true"] { background: var(--card); box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 28px 22px; }
+  .card { cursor: pointer; background: none; border: 0; text-align: left; font: inherit; color: inherit; padding: 0; }
+  .thumb { aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; background: var(--seg);
+    box-shadow: var(--shadow); transition: transform .25s ease; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card:hover .thumb { transform: scale(1.02); }
+  .card h3 { font-size: 16px; font-weight: 600; margin-top: 12px; letter-spacing: -.01em;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card small { display: block; color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .card.watched { opacity: .4; }
+
+  .msg { color: var(--muted); padding: 24px 0; }
+  .end { text-align: center; margin-top: 72px; color: var(--muted); }
+  .end strong { display: block; font-size: 22px; color: var(--text); font-weight: 600; letter-spacing: -.02em; margin-bottom: 6px; }
+  .end button { font: inherit; font-size: 14px; color: var(--accent); background: none; border: 0; cursor: pointer; margin-top: 14px; }
+  footer { margin-top: 40px; text-align: center; font-size: 12px; color: var(--muted); }
+
+  dialog { border: 0; padding: 0; background: transparent; width: min(960px, 94vw); max-width: none; overflow: visible; margin: auto; }
+  dialog::backdrop { background: rgba(0,0,0,.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+  .player { aspect-ratio: 16/9; border-radius: 16px; overflow: hidden; background: #000; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+  .player iframe { width: 100%; height: 100%; border: 0; }
+  .bar { position: absolute; top: -44px; right: 0; left: 0; display: flex; justify-content: space-between; }
+  .pill { font: inherit; font-size: 14px; color: #fff; background: rgba(255,255,255,.18); border: 0;
+    border-radius: 999px; padding: 6px 16px; cursor: pointer; text-decoration: none; }
+
+  /* ---- player de música ---- */
+  .music { position: fixed; z-index: 5; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); }
+  .music-card { width: 216px; background: var(--card); border-radius: 18px; padding: 8px;
+    box-shadow: 0 10px 34px rgba(0,0,0,.18); border: 1px solid var(--seg); }
+  .music-video { width: 200px; height: 200px; border-radius: 12px; overflow: hidden; background: #000; }
+  .music-video iframe { display: block; width: 200px; height: 200px; border: 0; }
+  .music-row { display: flex; align-items: center; gap: 4px; padding: 8px 2px 2px; }
+  .music-meta { flex: 1; min-width: 0; line-height: 1.25; }
+  .music-meta strong { display: block; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .music-meta span, .music-meta a { display: block; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .music-meta a { color: var(--accent); text-decoration: none; }
+  .icon-btn { width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--seg); color: var(--text);
+    display: grid; place-items: center; cursor: pointer; flex: none; font: inherit; font-size: 16px; line-height: 1; }
+  .icon-btn:hover { background: var(--accent); color: #fff; }
+  .music-pill { display: none; font: inherit; font-size: 13px; font-weight: 500; color: var(--text); background: var(--card);
+    border: 1px solid var(--seg); border-radius: 999px; padding: 8px 14px; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,.14); }
+  .music.min .music-card { display: none; }
+  .music.min .music-pill { display: block; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="title">Foco</h1>
+    <p id="subtitle"></p>
+  </header>
+  <nav class="tabs" id="tabs" role="tablist"></nav>
+  <section class="grid" id="grid"></section>
+  <div class="end" id="end"></div>
+  <footer id="foot"></footer>
+</main>
+
+<div class="music" id="music">
+  <div class="music-card">
+    <div class="music-video"><div id="musicPlayer"></div></div>
+    <div class="music-row">
+      <div class="music-meta"><strong id="musicTitle"></strong><span id="musicArtist"></span></div>
+      <button class="icon-btn" id="musicToggle" aria-label="Tocar ou pausar a música"></button>
+      <button class="icon-btn" id="musicMin" aria-label="Minimizar player">–</button>
+    </div>
+  </div>
+  <button class="music-pill" id="musicPill">♪ <span id="musicPillText"></span></button>
+</div>
+
+<dialog id="modal">
+  <div class="bar">
+    <a class="pill" id="yt" target="_blank" rel="noopener">Abrir no YouTube</a>
+    <button class="pill" id="close">Fechar</button>
+  </div>
+  <div class="player" id="player"></div>
+</dialog>
+
+<script src="config.js"></script>
+<script>
+/* ---------- música de fundo (YouTube IFrame API) ---------- */
+(() => {
+  const M = (window.CONFIG || {}).musica;
+  const root = document.getElementById('music');
+  if (!M || !M.videoId) { root.remove(); return; }
+  const $ = id => document.getElementById(id);
+  const store = { get() { try { return localStorage.getItem('musica'); } catch { return null; } },
+                  set(v) { try { localStorage.setItem('musica', v); } catch {} } };   // 'on' | 'off' | 'min'
+
+  const ICON = {
+    play:  '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>',
+    pause: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>'
+  };
+  let player = null, ready = false, playing = false, gesture = false;
+  let minimized = store.get() === 'min';
+  let wantPlay = store.get() !== 'off' && !minimized;
+
+  $('musicTitle').textContent = M.titulo || 'Música';
+  $('musicArtist').textContent = M.artista || '';
+  $('musicPillText').textContent = M.titulo || 'Música';
+
+  function ui() {
+    root.classList.toggle('min', minimized);
+    $('musicToggle').innerHTML = playing ? ICON.pause : ICON.play;
+  }
+  function play() {
+    minimized = false; wantPlay = true; store.set('on'); ui();
+    if (ready) player.playVideo();
+  }
+  function pause() { wantPlay = false; store.set('off'); if (ready) player.pauseVideo(); }
+
+  $('musicToggle').onclick = () => (playing ? pause() : play());
+  $('musicMin').onclick = () => { if (ready) player.pauseVideo(); wantPlay = false; minimized = true; store.set('min'); ui(); };
+  $('musicPill').onclick = play;
+
+  // Navegadores só liberam som depois de uma interação: começa no primeiro clique/toque na página
+  addEventListener('pointerdown', () => {
+    gesture = true;
+    if (ready && wantPlay && !minimized && !playing) player.playVideo();
+  }, { once: true, capture: true });
+  addEventListener('keydown', () => { gesture = true; }, { once: true, capture: true });
+
+  const prev = window.onYouTubeIframeAPIReady;
+  window.onYouTubeIframeAPIReady = () => {
+    if (prev) prev();
+    player = new YT.Player('musicPlayer', {
+      width: 200, height: 200, videoId: M.videoId,
+      playerVars: Object.assign({ controls: 0, rel: 0, modestbranding: 1, playsinline: 1, disablekb: 1,
+        fs: 0, iv_load_policy: 3, loop: 1, playlist: M.videoId },
+        location.protocol.startsWith('http') ? { origin: location.origin } : {}),
+      events: {
+        onReady: () => {
+          ready = true; player.setVolume(M.volume ?? 40);
+          if (gesture && wantPlay && !minimized) player.playVideo();
+        },
+        onStateChange: e => {
+          playing = e.data === 1; ui();
+          if (e.data === 0) player.playVideo();       // reforço do loop
+        },
+        onError: () => {
+          $('musicTitle').textContent = 'Música indisponível';
+          $('musicArtist').innerHTML = '<a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=' + M.videoId + '">Abrir no YouTube</a>';
+        }
+      }
+    });
+  };
+  const s = document.createElement('script');
+  s.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(s);
+  ui();
+
+  // usado quando um vídeo do site abre: pausa a música e depois retoma
+  window.Musica = {
+    suspend() { const was = playing; if (was && ready) player.pauseVideo(); return was; },
+    resume(was) { if (was && ready && !minimized) player.playVideo(); }
+  };
+})();
+</script>
+<script>
+(() => {
+  const C = window.CONFIG;
+  const $ = id => document.getElementById(id);
+  const rtf = new Intl.RelativeTimeFormat('pt-BR', { numeric: 'auto' });
+  let results = [];            // [{ nome, videos: [...] }] por categoria
+  let failed = [];
+  let current = 0, showWatched = false;
+
+  /* ---------- armazenamento local (vistos + cache) ---------- */
+  const ls = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  };
+  const watched = () => new Set(ls.get('watched', []));
+  const markWatched = id => { const s = watched(); s.add(id); ls.set('watched', [...s].slice(-500)); };
+
+  /* ---------- busca do RSS via proxy CORS (tenta vários) ---------- */
+  const PROXIES = [
+    u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+    u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+    u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u)
+  ];
+
+  async function fetchText(url) {
+    for (const p of PROXIES) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 9000);
+        const r = await fetch(p(url), { signal: ctrl.signal });
+        clearTimeout(t);
+        if (!r.ok) continue;
+        const txt = await r.text();
+        if (txt.includes('<feed')) return txt;
+      } catch {}
+    }
+    throw new Error('proxy');
+  }
+
+  function parseFeed(xml) {
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    return [...doc.getElementsByTagName('entry')].map(e => ({
+      id: e.getElementsByTagNameNS('*', 'videoId')[0]?.textContent,
+      title: e.getElementsByTagName('title')[0]?.textContent ?? '',
+      channel: e.getElementsByTagName('name')[0]?.textContent ?? '',
+      published: e.getElementsByTagName('published')[0]?.textContent
+    })).filter(v => v.id);
+  }
+
+  // UULF + (ID do canal sem "UC") = playlist só com vídeos longos, sem Shorts
+  async function loadChannel(ch) {
+    const key = 'cache:' + ch.id;
+    const cached = ls.get(key, null);
+    const ttl = (C.cacheHoras ?? 3) * 36e5;
+    if (cached && Date.now() - cached.t < ttl) return cached.videos;
+
+    let videos;
+    try {
+      try {
+        videos = parseFeed(await fetchText('https://www.youtube.com/feeds/videos.xml?playlist_id=UULF' + ch.id.slice(2)));
+      } catch { videos = []; }
+      if (!videos.length)
+        videos = parseFeed(await fetchText('https://www.youtube.com/feeds/videos.xml?channel_id=' + ch.id));
+    } catch (e) {
+      if (cached) return cached.videos;   // melhor velho do que nada
+      throw e;
+    }
+    videos.sort((a, b) => new Date(b.published) - new Date(a.published));
+    videos = videos.slice(0, C.porCanal ?? 5);
+    ls.set(key, { t: Date.now(), videos });
+    return videos;
+  }
+
+  /* ---------- interface ---------- */
+  function ago(iso) {
+    const days = Math.round((new Date(iso) - Date.now()) / 864e5);
+    if (days > -1) return 'hoje';
+    if (days > -30) return rtf.format(days, 'day');
+    if (days > -365) return rtf.format(Math.round(days / 30), 'month');
+    return rtf.format(Math.round(days / 365), 'year');
+  }
+
+  function renderTabs() {
+    $('tabs').innerHTML = '';
+    C.categorias.forEach((c, i) => {
+      const b = document.createElement('button');
+      b.textContent = c.nome; b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', i === current);
+      b.onclick = () => { current = i; showWatched = false; render(); };
+      $('tabs').appendChild(b);
+    });
+  }
+
+  function render() {
+    renderTabs();
+    const seen = watched();
+    const all = results[current]?.videos ?? [];
+    const list = showWatched ? all : all.filter(v => !seen.has(v.id));
+    const grid = $('grid'); grid.innerHTML = '';
+
+    list.forEach(v => {
+      const el = document.createElement('button');
+      el.className = 'card' + (seen.has(v.id) ? ' watched' : '');
+      el.innerHTML = '<div class="thumb"><img loading="lazy" alt=""></div><h3></h3><small></small>';
+      el.querySelector('img').src = `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`;
+      el.querySelector('h3').textContent = v.title;
+      el.querySelector('small').textContent = `${v.channel} · ${ago(v.published)}`;
+      el.onclick = () => openVideo(v.id);
+      grid.appendChild(el);
+    });
+
+    const hidden = all.length - all.filter(v => !seen.has(v.id)).length;
+    $('end').innerHTML = all.length
+      ? `<strong>${list.length ? 'Por hoje é isso.' : 'Tudo visto por aqui.'}</strong>Vá viver a vida lá fora.`
+      : '';
+    if (hidden && !showWatched) {
+      const b = document.createElement('button');
+      b.textContent = `Mostrar ${hidden} já ${hidden > 1 ? 'vistos' : 'visto'}`;
+      b.onclick = () => { showWatched = true; render(); };
+      $('end').appendChild(b);
+    }
+    $('foot').textContent = failed.length ? 'Não consegui carregar: ' + failed.join(', ') + '. Tente recarregar.' : '';
+  }
+
+  let musicWas = false;
+  function openVideo(id) {
+    markWatched(id);
+    musicWas = window.Musica ? window.Musica.suspend() : false;
+    $('yt').href = 'https://www.youtube.com/watch?v=' + id;
+    $('player').innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?rel=0&autoplay=1&playsinline=1"
+      allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+    $('modal').showModal();
+  }
+  $('modal').addEventListener('close', () => { $('player').innerHTML = ''; if (window.Musica) window.Musica.resume(musicWas); render(); });
+  $('close').onclick = () => $('modal').close();
+  $('modal').addEventListener('click', e => { if (e.target === $('modal')) $('modal').close(); });
+
+  /* ---------- início ---------- */
+  document.title = C.titulo || 'Foco';
+  $('title').textContent = C.titulo || 'Foco';
+  $('subtitle').textContent = C.subtitulo || '';
+  renderTabs();
+  $('grid').innerHTML = '<p class="msg">Carregando…</p>';
+
+  Promise.all(C.categorias.map(async cat => {
+    const settled = await Promise.all(cat.canais.map(ch =>
+      loadChannel(ch).catch(() => { failed.push(ch.nome || ch.id); return []; })));
+    const videos = settled.flat().sort((a, b) => new Date(b.published) - new Date(a.published));
+    return { nome: cat.nome, videos };
+  })).then(r => { results = r; render(); });
+})();
+</script>
+</body>
+</html>
