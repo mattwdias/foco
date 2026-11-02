@@ -30,6 +30,13 @@ window.CONFIG = {
       canais: [
         { nome: "Gibran Alcocer", id: "UC_6zyKjvT-qt1Uf-_yqHb4Q" }   // pianista
       ]
+    },
+    {
+      nome: "Viagens",
+      canais: [
+        { nome: "Chicco Mattos",      id: "UCysb54tfQHGIK9jB2VI8_HQ" },   // youtube.com/@chiccomattos
+        { nome: "Sven's One Bag Life", id: "UCNZ9lcLo5VEDtnVHuB9dMhg" }   // youtube.com/@SvensOneBagLife
+      ]
     }
     // Para criar outra categoria, copie o bloco acima:
     // { nome: "Aprender", canais: [ { nome: "Fulano", id: "UCxxxxxxxxxxxxxxxxxxxxxx" } ] }
