@@ -54,10 +54,17 @@ for (const ch of canais) {
 if (!Object.keys(out).length) { console.log('nenhum canal carregou — não vou sobrescrever o data.json'); process.exit(1); }
 
 // preserva o que já havia para canais que falharam nesta rodada
+let antigo = null;
 try {
-  const antigo = JSON.parse(await readFile(new URL('../data.json', import.meta.url), 'utf8'));
+  antigo = JSON.parse(await readFile(new URL('../data.json', import.meta.url), 'utf8'));
   for (const [id, v] of Object.entries(antigo.canais ?? {})) if (!out[id]) out[id] = v;
 } catch {}
+
+// sem vídeo novo, não reescreve o arquivo: evita um commit a cada 3 horas
+if (antigo && JSON.stringify(antigo.canais) === JSON.stringify(out)) {
+  console.log('nada mudou — data.json intocado');
+  process.exit(0);
+}
 
 await writeFile(new URL('../data.json', import.meta.url),
   JSON.stringify({ gerado: new Date().toISOString(), canais: out }, null, 1) + '\n');
