@@ -10,10 +10,13 @@
     --accent: #0071e3; --seg: rgba(120,120,128,.12); --shadow: 0 2px 12px rgba(0,0,0,.06);
     color-scheme: light;
   }
+  /* escuro: segue o navegador, a não ser que o tema esteja travado em claro */
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #000; --card: #1c1c1e; --text: #f5f5f7; --muted: #98989d;
+    :root:not([data-theme="light"]) { --bg: #000; --card: #1c1c1e; --text: #f5f5f7; --muted: #98989d;
       --accent: #2997ff; --seg: rgba(120,120,128,.24); --shadow: none; color-scheme: dark; }
   }
+  :root[data-theme="dark"] { --bg: #000; --card: #1c1c1e; --text: #f5f5f7; --muted: #98989d;
+      --accent: #2997ff; --seg: rgba(120,120,128,.24); --shadow: none; color-scheme: dark; }
   * { box-sizing: border-box; margin: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
@@ -90,6 +93,8 @@
     background: var(--seg); color: var(--muted); display: grid; place-items: center; cursor: pointer;
     opacity: .3; transition: opacity .2s ease, color .2s ease; }
   .search-btn:hover, .search-btn:focus-visible { opacity: 1; color: var(--text); outline: 0; }
+  .top-acoes { display: flex; flex: none; gap: 6px; }
+  #themeBtn { font-size: 14px; }
 
   #search { width: min(640px, 94vw); margin: 10vh auto auto; }
   .search-box { background: var(--card); border: 1px solid var(--seg); border-radius: 16px;
@@ -110,6 +115,10 @@
   .hit.watched { opacity: .45; }
   .search-foot { padding: 11px 20px; border-top: 1px solid var(--seg); color: var(--muted); font-size: 12px; }
 </style>
+<script>
+  // antes de pintar, para não dar flash do tema errado
+  try { const t = localStorage.getItem('tema'); if (t) document.documentElement.dataset.theme = t; } catch {}
+</script>
 </head>
 <body>
 <main>
@@ -118,10 +127,13 @@
       <h1 id="title">Foco</h1>
       <p id="subtitle"></p>
     </div>
-    <button class="search-btn" id="searchBtn" aria-label="Buscar nos seus canais" title="Buscar (⌘K ou /)">
+    <div class="top-acoes">
+      <button class="search-btn" id="themeBtn"></button>
+      <button class="search-btn" id="searchBtn" aria-label="Buscar nos seus canais" title="Buscar (⌘K ou /)">
       <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="none" stroke="currentColor"
         stroke-width="2.2" stroke-linecap="round" d="M10.5 3.5a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm4.9 12l5.1 5.1"/></svg>
-    </button>
+      </button>
+    </div>
   </header>
   <nav class="tabs" id="tabs" role="tablist"></nav>
   <section class="grid" id="grid"></section>
@@ -431,7 +443,7 @@
   }
   $('modal').addEventListener('close', () => { $('player').innerHTML = ''; if (window.Musica) window.Musica.resume(musicWas); render(); });
   $('close').onclick = () => $('modal').close();
-  $('modal').addEventListener('click', e => { if (e.target === $('modal')) $('modal').close(); });
+  // de propósito: clique no fundo NÃO fecha o vídeo, para não interromper sem querer
 
   /* ---------- busca: varre o arquivo inteiro, não só o que está na tela ---------- */
   const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -517,6 +529,23 @@
     $('q').select();
     renderHits();
   }
+
+  /* ---------- tema: segue o navegador por padrão, mas dá para travar ---------- */
+  const TEMAS = ['auto', 'light', 'dark'];
+  const ROTULO = { auto: 'Tema: segue o navegador', light: 'Tema: claro', dark: 'Tema: escuro' };
+  const ICONE = { auto: '◐', light: '☀', dark: '☾' };
+  const temaAtual = () => { try { return localStorage.getItem('tema') || 'auto'; } catch { return 'auto'; } };
+
+  function aplicaTema(t) {
+    try { t === 'auto' ? localStorage.removeItem('tema') : localStorage.setItem('tema', t); } catch {}
+    if (t === 'auto') delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = t;
+    $('themeBtn').textContent = ICONE[t];
+    $('themeBtn').title = ROTULO[t];
+    $('themeBtn').setAttribute('aria-label', ROTULO[t]);
+  }
+  $('themeBtn').onclick = () => aplicaTema(TEMAS[(TEMAS.indexOf(temaAtual()) + 1) % TEMAS.length]);
+  aplicaTema(temaAtual());
 
   $('searchBtn').onclick = abrirBusca;
   $('q').oninput = renderHits;
