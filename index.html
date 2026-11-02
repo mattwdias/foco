@@ -54,6 +54,24 @@
   @media (hover: none) { .star { opacity: 1; } }    /* no toque não existe hover */
   .pill.on { background: rgba(255,214,10,.92); color: #000; }
 
+  /* ---- visão por canal: raias horizontais, estilo pool de BPMN ---- */
+  .raias { display: flex; flex-direction: column; gap: 14px; }
+  .raia { display: grid; grid-template-columns: 136px 1fr; background: var(--card);
+    border: 1px solid var(--seg); border-radius: 16px; overflow: hidden; }
+  .raia-nome { display: flex; align-items: center; padding: 14px 13px; background: var(--seg);
+    border-right: 1px solid var(--seg); font-size: 13px; font-weight: 600; letter-spacing: -.01em; }
+  .raia-fila { display: flex; gap: 14px; padding: 14px; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
+  .raia-fila .card-wrap { flex: 0 0 228px; scroll-snap-align: start; }
+  .raia-fila .card h3 { font-size: 15px; }
+  @media (max-width: 640px) {
+    .raia { grid-template-columns: 1fr; }
+    .raia-nome { border-right: 0; border-bottom: 1px solid var(--seg); padding: 11px 13px; }
+    .raia-fila { padding: 12px; gap: 12px; }
+    .raia-fila .card-wrap { flex: 0 0 188px; }
+  }
+  .search-btn.on { opacity: 1; color: var(--accent); }
+
   .msg { color: var(--muted); padding: 24px 0; }
   .end { text-align: center; margin-top: 72px; color: var(--muted); }
   .end strong { display: block; font-size: 22px; color: var(--text); font-weight: 600; letter-spacing: -.02em; margin-bottom: 6px; }
@@ -129,6 +147,10 @@
     </div>
     <div class="top-acoes">
       <button class="search-btn" id="themeBtn"></button>
+      <button class="search-btn" id="poolBtn">
+        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><g fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></g></svg>
+      </button>
       <button class="search-btn" id="searchBtn" aria-label="Buscar nos seus canais" title="Buscar (⌘K ou /)">
       <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="none" stroke="currentColor"
         stroke-width="2.2" stroke-linecap="round" d="M10.5 3.5a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm4.9 12l5.1 5.1"/></svg>
@@ -262,6 +284,7 @@
   let failed = [];
   let current = 0, showWatched = false;
   const iFav = C.categorias.length;    // a aba de favoritos vem depois das categorias
+  let visao = (() => { try { return localStorage.getItem('visao') || 'grade'; } catch { return 'grade'; } })();
 
   /* ---------- armazenamento local (vistos + cache) ---------- */
   const ls = {
@@ -377,6 +400,28 @@
     });
   }
 
+  function criaCard(v, seen, ehFav) {
+    const wrap = document.createElement('div');
+    wrap.className = 'card-wrap';
+    const el = document.createElement('button');
+    el.className = 'card' + (seen.has(v.id) ? ' watched' : '');
+    el.innerHTML = '<div class="thumb"><img loading="lazy" alt=""></div><h3></h3><small></small>';
+    el.querySelector('img').src = `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`;
+    el.querySelector('h3').textContent = v.title;
+    // na raia o nome do canal já está na etiqueta da esquerda
+    const meta = [visao === 'raias' ? null : v.channel, ehFav ? v.cat : null, ago(v.published)];
+    el.querySelector('small').textContent = meta.filter(Boolean).join(' · ');
+    el.onclick = () => openVideo(v.id, v);
+    const st = document.createElement('button');
+    st.className = 'star' + (favs.tem(v.id) ? ' on' : '');
+    st.textContent = '★';
+    st.title = favs.tem(v.id) ? 'Remover dos favoritos' : 'Guardar nos favoritos';
+    st.setAttribute('aria-label', st.title);
+    st.onclick = () => { favs.alterna(v); render(); };
+    wrap.append(el, st);
+    return wrap;
+  }
+
   function render() {
     renderTabs();
     const seen = watched();
@@ -384,27 +429,32 @@
     const all = ehFav ? favs.lista() : (results[current]?.videos ?? []);
     // favorito nunca é escondido por já ter sido visto
     const list = (ehFav || showWatched) ? all : all.filter(v => !seen.has(v.id));
-    const grid = $('grid'); grid.innerHTML = '';
+    const grid = $('grid');
+    grid.innerHTML = '';
+    grid.className = visao === 'raias' ? 'raias' : 'grid';
 
-    list.forEach(v => {
-      const wrap = document.createElement('div');
-      wrap.className = 'card-wrap';
-      const el = document.createElement('button');
-      el.className = 'card' + (seen.has(v.id) ? ' watched' : '');
-      el.innerHTML = '<div class="thumb"><img loading="lazy" alt=""></div><h3></h3><small></small>';
-      el.querySelector('img').src = `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`;
-      el.querySelector('h3').textContent = v.title;
-      el.querySelector('small').textContent = [v.channel, ehFav ? v.cat : null, ago(v.published)].filter(Boolean).join(' · ');
-      el.onclick = () => openVideo(v.id, v);
-      const st = document.createElement('button');
-      st.className = 'star' + (favs.tem(v.id) ? ' on' : '');
-      st.textContent = '★';
-      st.title = favs.tem(v.id) ? 'Remover dos favoritos' : 'Guardar nos favoritos';
-      st.setAttribute('aria-label', st.title);
-      st.onclick = () => { favs.alterna(v); render(); };
-      wrap.append(el, st);
-      grid.appendChild(wrap);
-    });
+    if (visao === 'raias') {
+      const porCanal = new Map();
+      list.forEach(v => {
+        const k = v.channel || '—';
+        if (!porCanal.has(k)) porCanal.set(k, []);
+        porCanal.get(k).push(v);
+      });
+      [...porCanal.keys()].sort((a, b) => a.localeCompare(b, 'pt-BR')).forEach(nome => {
+        const raia = document.createElement('div');
+        raia.className = 'raia';
+        const rot = document.createElement('div');
+        rot.className = 'raia-nome';
+        rot.textContent = nome;
+        const fila = document.createElement('div');
+        fila.className = 'raia-fila';
+        porCanal.get(nome).forEach(v => fila.appendChild(criaCard(v, seen, ehFav)));
+        raia.append(rot, fila);
+        grid.appendChild(raia);
+      });
+    } else {
+      list.forEach(v => grid.appendChild(criaCard(v, seen, ehFav)));
+    }
 
     const hidden = ehFav ? 0 : all.length - all.filter(v => !seen.has(v.id)).length;
     $('end').innerHTML = ehFav
@@ -546,6 +596,18 @@
   }
   $('themeBtn').onclick = () => aplicaTema(TEMAS[(TEMAS.indexOf(temaAtual()) + 1) % TEMAS.length]);
   aplicaTema(temaAtual());
+
+  function aplicaVisao(v) {
+    visao = v;
+    try { v === 'grade' ? localStorage.removeItem('visao') : localStorage.setItem('visao', v); } catch {}
+    const rotulo = v === 'raias' ? 'Agrupado por canal' : 'Agrupar por canal';
+    $('poolBtn').classList.toggle('on', v === 'raias');
+    $('poolBtn').title = rotulo;
+    $('poolBtn').setAttribute('aria-label', rotulo);
+    $('poolBtn').setAttribute('aria-pressed', String(v === 'raias'));
+  }
+  $('poolBtn').onclick = () => { aplicaVisao(visao === 'raias' ? 'grade' : 'raias'); render(); };
+  aplicaVisao(visao);
 
   $('searchBtn').onclick = abrirBusca;
   $('q').oninput = renderHits;

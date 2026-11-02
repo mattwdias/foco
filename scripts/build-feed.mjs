@@ -12,6 +12,10 @@ const C = shim.CONFIG;
 const canais = C.categorias.flatMap(c => c.canais);
 const guardar = C.buscaPorCanal ?? 50;
 
+// Opcional: com um secret YOUTUBE_API_KEY o job pega até `guardar` vídeos de uma vez.
+// Sem ele, só o RSS (15 por canal) e o arquivo cresce aos poucos.
+const APIKEY = process.env.YOUTUBE_API_KEY || '';
+
 let antigo = null;
 try { antigo = JSON.parse(await readFile(ARQ, 'utf8')); } catch {}
 
@@ -40,6 +44,37 @@ async function feed(url) {
   return parseFeed(await r.text());
 }
 
+// playlistItems da playlist UULF: 50 por página, 1 unidade de quota cada
+async function viaApi(ch) {
+  const saida = [];
+  let token = '';
+  while (saida.length < guardar) {
+    const u = new URL('https://www.googleapis.com/youtube/v3/playlistItems');
+    u.searchParams.set('part', 'snippet');
+    u.searchParams.set('playlistId', 'UULF' + ch.id.slice(2));
+    u.searchParams.set('maxResults', String(Math.min(50, guardar - saida.length)));
+    u.searchParams.set('key', APIKEY);
+    if (token) u.searchParams.set('pageToken', token);
+
+    const r = await fetch(u);
+    if (!r.ok) throw new Error('API ' + r.status + ' ' + (await r.text()).slice(0, 120));
+    const j = await r.json();
+    for (const it of j.items ?? []) {
+      const sn = it.snippet;
+      if (sn?.resourceId?.videoId && sn.title !== 'Private video' && sn.title !== 'Deleted video')
+        saida.push({
+          id: sn.resourceId.videoId,
+          title: sn.title,
+          channel: sn.videoOwnerChannelTitle || ch.nome,
+          published: sn.publishedAt
+        });
+    }
+    token = j.nextPageToken || '';
+    if (!token) break;
+  }
+  return saida;
+}
+
 const recente = (a, b) => new Date(b.published) - new Date(a.published);
 const out = {};
 let novos = 0, erros = 0;
@@ -48,8 +83,13 @@ for (const ch of canais) {
   const arquivados = antigo?.canais?.[ch.id] ?? [];
   try {
     // UULF + ID sem "UC" = playlist só de vídeos longos, sem Shorts
-    let v = await feed('https://www.youtube.com/feeds/videos.xml?playlist_id=UULF' + ch.id.slice(2));
-    if (!v.length) v = await feed('https://www.youtube.com/feeds/videos.xml?channel_id=' + ch.id);
+    let v = APIKEY
+      ? await viaApi(ch).catch(e => { console.log(`  api indisponível (${e.message}) — usando RSS`); return []; })
+      : [];
+    if (!v.length) {
+      v = await feed('https://www.youtube.com/feeds/videos.xml?playlist_id=UULF' + ch.id.slice(2));
+      if (!v.length) v = await feed('https://www.youtube.com/feeds/videos.xml?channel_id=' + ch.id);
+    }
 
     const mapa = new Map(arquivados.map(x => [x.id, x]));
     const antes = mapa.size;
