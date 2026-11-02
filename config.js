@@ -2,7 +2,8 @@
 window.CONFIG = {
   titulo: "Foco",
   subtitulo: "Só o que importa. Sem rolagem infinita.",
-  porCanal: 5,          // quantos vídeos mostrar de cada canal
+  porCanal: 15,         // quantos vídeos mostrar de cada canal
+  buscaPorCanal: 50,    // quantos guardar de cada canal só para a busca (⌘K)
   cacheHoras: 3,        // reaproveita a lista por X horas (deixa o site rápido)
 
   // Música de fundo (player discreto no canto inferior direito)

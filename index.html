@@ -30,7 +30,7 @@
     background: transparent; padding: 7px 18px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
   .tabs button[aria-selected="true"] { background: var(--card); box-shadow: 0 1px 4px rgba(0,0,0,.15); }
 
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 28px 22px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 28px 22px; }
   .card { cursor: pointer; background: none; border: 0; text-align: left; font: inherit; color: inherit; padding: 0; }
   .thumb { aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; background: var(--seg);
     box-shadow: var(--shadow); transition: transform .25s ease; }
@@ -73,13 +73,45 @@
     border: 1px solid var(--seg); border-radius: 999px; padding: 8px 14px; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,.14); }
   .music.min .music-card { display: none; }
   .music.min .music-pill { display: block; }
+
+  /* ---- busca ---- */
+  .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .search-btn { flex: none; width: 34px; height: 34px; margin-top: 12px; border: 0; border-radius: 50%;
+    background: var(--seg); color: var(--muted); display: grid; place-items: center; cursor: pointer;
+    opacity: .3; transition: opacity .2s ease, color .2s ease; }
+  .search-btn:hover, .search-btn:focus-visible { opacity: 1; color: var(--text); outline: 0; }
+
+  #search { width: min(640px, 94vw); margin: 10vh auto auto; }
+  .search-box { background: var(--card); border: 1px solid var(--seg); border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.35); overflow: hidden; }
+  .search-box input { width: 100%; font: inherit; font-size: 17px; color: var(--text);
+    background: none; border: 0; padding: 17px 20px; outline: 0; }
+  .search-box input::placeholder { color: var(--muted); }
+  .hits { max-height: min(58vh, 440px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .hits:not(:empty) { border-top: 1px solid var(--seg); }
+  .hit { display: flex; gap: 12px; align-items: center; width: 100%; padding: 9px 14px; cursor: pointer;
+    font: inherit; color: inherit; text-align: left; background: none; border: 0; }
+  .hit:hover, .hit:focus-visible { background: var(--seg); outline: 0; }
+  .hit img { flex: none; width: 92px; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; background: var(--seg); }
+  .hit-meta { min-width: 0; }
+  .hit strong { font-size: 14px; font-weight: 600; letter-spacing: -.01em;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .hit small { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .hit.watched { opacity: .45; }
+  .search-foot { padding: 11px 20px; border-top: 1px solid var(--seg); color: var(--muted); font-size: 12px; }
 </style>
 </head>
 <body>
 <main>
-  <header>
-    <h1 id="title">Foco</h1>
-    <p id="subtitle"></p>
+  <header class="top">
+    <div>
+      <h1 id="title">Foco</h1>
+      <p id="subtitle"></p>
+    </div>
+    <button class="search-btn" id="searchBtn" aria-label="Buscar nos seus canais" title="Buscar (⌘K ou /)">
+      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="none" stroke="currentColor"
+        stroke-width="2.2" stroke-linecap="round" d="M10.5 3.5a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm4.9 12l5.1 5.1"/></svg>
+    </button>
   </header>
   <nav class="tabs" id="tabs" role="tablist"></nav>
   <section class="grid" id="grid"></section>
@@ -98,6 +130,15 @@
   </div>
   <button class="music-pill" id="musicPill">♪ <span id="musicPillText"></span></button>
 </div>
+
+<dialog id="search">
+  <div class="search-box">
+    <input id="q" type="search" autocomplete="off" autocapitalize="none" spellcheck="false"
+      placeholder="Buscar tema nos seus canais…" aria-label="Buscar tema nos seus canais">
+    <div class="hits" id="hits"></div>
+    <div class="search-foot" id="searchFoot"></div>
+  </div>
+</dialog>
 
 <dialog id="modal">
   <div class="bar">
@@ -123,8 +164,10 @@
     pause: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>'
   };
   let player = null, ready = false, playing = false, gesture = false;
-  let minimized = store.get() === 'min';
-  let wantPlay = store.get() !== 'off' && !minimized;
+  const estado = store.get();
+  // em tela estreita começa só com o pill ♪, para não cobrir os cards
+  let minimized = estado === 'min' || (!estado && innerWidth < 600);
+  let wantPlay = estado !== 'off' && !minimized;
 
   $('musicTitle').textContent = M.titulo || 'Música';
   $('musicArtist').textContent = M.artista || '';
@@ -343,6 +386,104 @@
   $('close').onclick = () => $('modal').close();
   $('modal').addEventListener('click', e => { if (e.target === $('modal')) $('modal').close(); });
 
+  /* ---------- busca: varre o arquivo inteiro, não só o que está na tela ---------- */
+  const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const palavras = s => norm(s).split(/[^a-z0-9]+/).filter(Boolean);
+
+  // Radical bem simples de português: faz "jejum" achar "Jejuar", "acreditar" achar "acreditam".
+  // Não é stemmer de verdade, mas resolve o caso de buscar um tema sem acertar a flexão.
+  const SUFIXOS = /(?:acoes|coes|mente|idades?|izacao|acao|ando|endo|indo|ad[oa]s|ar|er|ir|am|em|ou|[oaes]s|[oaem])$/;
+  function radical(w) {
+    let r = w;
+    for (let i = 0; i < 2 && r.length > 4; i++) {
+      const n = r.replace(SUFIXOS, '');
+      if (n === r || n.length < 4) break;
+      r = n;
+    }
+    return r;
+  }
+
+  let TODOS = [];
+
+  function indexar() {
+    const ids = new Set(); const flat = [];
+    const add = (v, cat) => {
+      if (!v?.id || ids.has(v.id)) return;
+      ids.add(v.id);
+      const txt = `${v.title} ${v.channel} ${cat ?? ''}`;
+      flat.push({ ...v, cat, tit: norm(v.title), hay: norm(txt), rads: palavras(txt).map(radical) });
+    };
+    C.categorias.forEach(cat => cat.canais.forEach(ch =>
+      (DATA?.canais?.[ch.id] ?? []).forEach(v => add(v, cat.nome))));
+    if (!flat.length) results.forEach(r => r.videos.forEach(v => add(v, r.nome)));   // sem data.json
+    TODOS = flat.sort((a, b) => new Date(b.published) - new Date(a.published));
+  }
+
+  // 3 = no título, 2 = no canal/categoria, 1 = só pelo radical, 0 = não bate
+  function bate(e, t) {
+    if (e.tit.includes(t)) return 3;
+    if (e.hay.includes(t)) return 2;
+    const r = radical(t);
+    return r.length >= 4 && e.rads.some(x => x.startsWith(r)) ? 1 : 0;
+  }
+
+  function buscar(q) {
+    const termos = norm(q).split(/\s+/).filter(Boolean);
+    if (!termos.length) return [];
+    const achados = [];
+    for (const e of TODOS) {
+      let peso = 0;
+      if (termos.every(t => { const p = bate(e, t); peso += p + (e.tit.startsWith(t) ? 2 : 0); return p; }))
+        achados.push({ e, peso });
+    }
+    return achados
+      .sort((a, b) => b.peso - a.peso || new Date(b.e.published) - new Date(a.e.published))
+      .map(x => x.e);
+  }
+
+  const LIMITE_HITS = 60;
+  function renderHits() {
+    const q = $('q').value.trim();
+    const hits = buscar(q);
+    const seen = watched();
+    $('hits').innerHTML = '';
+    hits.slice(0, LIMITE_HITS).forEach(v => {
+      const b = document.createElement('button');
+      b.className = 'hit' + (seen.has(v.id) ? ' watched' : '');
+      b.innerHTML = '<img loading="lazy" alt=""><div class="hit-meta"><strong></strong><small></small></div>';
+      b.querySelector('img').src = `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`;
+      b.querySelector('strong').textContent = v.title;
+      b.querySelector('small').textContent = [v.channel, v.cat, ago(v.published)].filter(Boolean).join(' · ');
+      b.onclick = () => { $('search').close(); openVideo(v.id); };
+      $('hits').appendChild(b);
+    });
+    $('searchFoot').textContent = !q
+      ? `${TODOS.length} vídeos no arquivo. Tema, canal ou palavra do título.`
+      : !hits.length ? 'Nada encontrado.'
+      : `${hits.length} resultado${hits.length > 1 ? 's' : ''}` +
+        (hits.length > LIMITE_HITS ? ` · mostrando ${LIMITE_HITS}` : '');
+  }
+
+  function abrirBusca() {
+    if (!TODOS.length) indexar();
+    if (!$('search').open) $('search').showModal();
+    $('q').select();
+    renderHits();
+  }
+
+  $('searchBtn').onclick = abrirBusca;
+  $('q').oninput = renderHits;
+  $('q').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); $('hits').querySelector('.hit')?.click(); }
+  });
+  $('search').addEventListener('click', e => { if (e.target === $('search')) $('search').close(); });
+  $('search').addEventListener('close', () => render());   // atualiza os "vistos" no grid
+  addEventListener('keydown', e => {
+    const digitando = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+    if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); abrirBusca(); }
+    else if (e.key === '/' && !digitando && !$('search').open) { e.preventDefault(); abrirBusca(); }
+  });
+
   /* ---------- início ---------- */
   document.title = C.titulo || 'Foco';
   $('title').textContent = C.titulo || 'Foco';
@@ -359,6 +500,7 @@
       return { nome: cat.nome, videos };
     }));
     render();
+    indexar();
   })();
 })();
 </script>

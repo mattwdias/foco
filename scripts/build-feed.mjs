@@ -1,13 +1,19 @@
-// Busca os feeds do YouTube e grava data.json. Roda na GitHub Action, não na sua máquina.
+// Busca os feeds do YouTube e mantém o data.json. Roda na GitHub Action, não na sua máquina.
+// O RSS do YouTube só entrega os 15 vídeos mais recentes de cada canal, então o arquivo
+// é acumulado: cada rodada mescla o que chegou com o que já havia, até buscaPorCanal.
 import { readFile, writeFile } from 'node:fs/promises';
 
+const ARQ = new URL('../data.json', import.meta.url);
 const src = await readFile(new URL('../config.js', import.meta.url), 'utf8');
 const shim = {};
 new Function('window', src)(shim);
 const C = shim.CONFIG;
 
 const canais = C.categorias.flatMap(c => c.canais);
-const limite = Math.max(C.porCanal ?? 5, 15);   // guarda folga: o site corta depois
+const guardar = C.buscaPorCanal ?? 50;
+
+let antigo = null;
+try { antigo = JSON.parse(await readFile(ARQ, 'utf8')); } catch {}
 
 const unescape = s => s
   .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
@@ -34,38 +40,38 @@ async function feed(url) {
   return parseFeed(await r.text());
 }
 
+const recente = (a, b) => new Date(b.published) - new Date(a.published);
 const out = {};
-let erros = 0;
+let novos = 0, erros = 0;
 
 for (const ch of canais) {
+  const arquivados = antigo?.canais?.[ch.id] ?? [];
   try {
     // UULF + ID sem "UC" = playlist só de vídeos longos, sem Shorts
     let v = await feed('https://www.youtube.com/feeds/videos.xml?playlist_id=UULF' + ch.id.slice(2));
     if (!v.length) v = await feed('https://www.youtube.com/feeds/videos.xml?channel_id=' + ch.id);
-    v.sort((a, b) => new Date(b.published) - new Date(a.published));
-    out[ch.id] = v.slice(0, limite).map(x => ({ ...x, channel: x.channel || ch.nome }));
-    console.log(`ok   ${ch.nome}: ${out[ch.id].length} vídeos`);
+
+    const mapa = new Map(arquivados.map(x => [x.id, x]));
+    const antes = mapa.size;
+    for (const x of v) mapa.set(x.id, { ...x, channel: x.channel || ch.nome });
+    out[ch.id] = [...mapa.values()].sort(recente).slice(0, guardar);
+    novos += Math.max(0, mapa.size - antes);
+    console.log(`ok    ${ch.nome}: ${out[ch.id].length} no arquivo (+${Math.max(0, mapa.size - antes)})`);
   } catch (e) {
     erros++;
+    if (arquivados.length) out[ch.id] = arquivados;   // melhor velho do que nada
     console.log(`FALHA ${ch.nome}: ${e.message}`);
   }
 }
 
-if (!Object.keys(out).length) { console.log('nenhum canal carregou — não vou sobrescrever o data.json'); process.exit(1); }
+if (!Object.keys(out).length) { console.log('nenhum canal carregou — data.json intocado'); process.exit(1); }
 
-// preserva o que já havia para canais que falharam nesta rodada
-let antigo = null;
-try {
-  antigo = JSON.parse(await readFile(new URL('../data.json', import.meta.url), 'utf8'));
-  for (const [id, v] of Object.entries(antigo.canais ?? {})) if (!out[id]) out[id] = v;
-} catch {}
-
-// sem vídeo novo, não reescreve o arquivo: evita um commit a cada 3 horas
+// canais que saíram do config.js deixam de ser guardados; os que falharam já foram preservados acima
 if (antigo && JSON.stringify(antigo.canais) === JSON.stringify(out)) {
   console.log('nada mudou — data.json intocado');
   process.exit(0);
 }
 
-await writeFile(new URL('../data.json', import.meta.url),
-  JSON.stringify({ gerado: new Date().toISOString(), canais: out }, null, 1) + '\n');
-console.log(`data.json escrito — ${Object.keys(out).length} canais, ${erros} falha(s)`);
+await writeFile(ARQ, JSON.stringify({ gerado: new Date().toISOString(), canais: out }, null, 1) + '\n');
+const total = Object.values(out).reduce((n, v) => n + v.length, 0);
+console.log(`data.json escrito — ${Object.keys(out).length} canais, ${total} vídeos, ${novos} novo(s), ${erros} falha(s)`);
