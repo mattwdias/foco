@@ -4,6 +4,8 @@ window.CONFIG = {
   subtitulo: "Só o que importa. Sem rolagem infinita.",
   porCanal: 15,         // quantos vídeos mostrar de cada canal
   buscaPorCanal: 100,   // quantos guardar de cada canal para a busca e as raias (⌘K)
+                        // Só chega a 100 com o secret YOUTUBE_API_KEY no repo;
+                        // sem ele o RSS traz 15 por rodada e o arquivo enche aos poucos.
   cacheHoras: 3,        // reaproveita a lista por X horas (deixa o site rápido)
 
   // Música de fundo (player discreto no canto inferior direito)
