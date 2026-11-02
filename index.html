@@ -41,6 +41,16 @@
   .card small { display: block; color: var(--muted); font-size: 13px; margin-top: 4px; }
   .card.watched { opacity: .4; }
 
+  .card-wrap { position: relative; }
+  .star { position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; border: 0; border-radius: 50%;
+    background: rgba(0,0,0,.45); color: #fff; font: inherit; font-size: 15px; line-height: 1; cursor: pointer;
+    display: grid; place-items: center; opacity: 0; transition: opacity .2s ease;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  .card-wrap:hover .star, .star:focus-visible, .star.on { opacity: 1; }
+  .star.on { color: #ffd60a; }
+  @media (hover: none) { .star { opacity: 1; } }    /* no toque não existe hover */
+  .pill.on { background: rgba(255,214,10,.92); color: #000; }
+
   .msg { color: var(--muted); padding: 24px 0; }
   .end { text-align: center; margin-top: 72px; color: var(--muted); }
   .end strong { display: block; font-size: 22px; color: var(--text); font-weight: 600; letter-spacing: -.02em; margin-bottom: 6px; }
@@ -143,6 +153,7 @@
 <dialog id="modal">
   <div class="bar">
     <a class="pill" id="yt" target="_blank" rel="noopener">Abrir no YouTube</a>
+    <button class="pill" id="favBtn">☆ Favoritar</button>
     <button class="pill" id="close">Fechar</button>
   </div>
   <div class="player" id="player"></div>
@@ -238,6 +249,7 @@
   let results = [];            // [{ nome, videos: [...] }] por categoria
   let failed = [];
   let current = 0, showWatched = false;
+  const iFav = C.categorias.length;    // a aba de favoritos vem depois das categorias
 
   /* ---------- armazenamento local (vistos + cache) ---------- */
   const ls = {
@@ -246,6 +258,19 @@
   };
   const watched = () => new Set(ls.get('watched', []));
   const markWatched = id => { const s = watched(); s.add(id); ls.set('watched', [...s].slice(-500)); };
+
+  /* ---------- favoritos: guardam uma cópia do vídeo, para não sumirem quando ele sai do arquivo ---------- */
+  const favs = {
+    lista: () => ls.get('favoritos', []),
+    tem: id => favs.lista().some(v => v.id === id),
+    alterna(v) {
+      const antes = favs.lista();
+      const resto = antes.filter(x => x.id !== v.id);
+      if (resto.length === antes.length)
+        resto.unshift({ id: v.id, title: v.title, channel: v.channel, published: v.published, cat: v.cat });
+      ls.set('favoritos', resto.slice(0, 500));
+    }
+  };
 
   /* ---------- busca do RSS via proxy CORS (tenta vários) ---------- */
   // Rede de segurança: só entram se o data.json faltar. (corsproxy.io saiu: passou a exigir chave.)
@@ -331,9 +356,9 @@
 
   function renderTabs() {
     $('tabs').innerHTML = '';
-    C.categorias.forEach((c, i) => {
+    [...C.categorias.map(c => c.nome), '★ Favoritos'].forEach((nome, i) => {
       const b = document.createElement('button');
-      b.textContent = c.nome; b.setAttribute('role', 'tab');
+      b.textContent = nome; b.setAttribute('role', 'tab');
       b.setAttribute('aria-selected', i === current);
       b.onclick = () => { current = i; showWatched = false; render(); };
       $('tabs').appendChild(b);
@@ -343,23 +368,36 @@
   function render() {
     renderTabs();
     const seen = watched();
-    const all = results[current]?.videos ?? [];
-    const list = showWatched ? all : all.filter(v => !seen.has(v.id));
+    const ehFav = current === iFav;
+    const all = ehFav ? favs.lista() : (results[current]?.videos ?? []);
+    // favorito nunca é escondido por já ter sido visto
+    const list = (ehFav || showWatched) ? all : all.filter(v => !seen.has(v.id));
     const grid = $('grid'); grid.innerHTML = '';
 
     list.forEach(v => {
+      const wrap = document.createElement('div');
+      wrap.className = 'card-wrap';
       const el = document.createElement('button');
       el.className = 'card' + (seen.has(v.id) ? ' watched' : '');
       el.innerHTML = '<div class="thumb"><img loading="lazy" alt=""></div><h3></h3><small></small>';
       el.querySelector('img').src = `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`;
       el.querySelector('h3').textContent = v.title;
-      el.querySelector('small').textContent = `${v.channel} · ${ago(v.published)}`;
-      el.onclick = () => openVideo(v.id);
-      grid.appendChild(el);
+      el.querySelector('small').textContent = [v.channel, ehFav ? v.cat : null, ago(v.published)].filter(Boolean).join(' · ');
+      el.onclick = () => openVideo(v.id, v);
+      const st = document.createElement('button');
+      st.className = 'star' + (favs.tem(v.id) ? ' on' : '');
+      st.textContent = '★';
+      st.title = favs.tem(v.id) ? 'Remover dos favoritos' : 'Guardar nos favoritos';
+      st.setAttribute('aria-label', st.title);
+      st.onclick = () => { favs.alterna(v); render(); };
+      wrap.append(el, st);
+      grid.appendChild(wrap);
     });
 
-    const hidden = all.length - all.filter(v => !seen.has(v.id)).length;
-    $('end').innerHTML = all.length
+    const hidden = ehFav ? 0 : all.length - all.filter(v => !seen.has(v.id)).length;
+    $('end').innerHTML = ehFav
+      ? (all.length ? '' : '<strong>Nenhum favorito ainda.</strong>Toque na ★ de um vídeo para guardar aqui.')
+      : all.length
       ? `<strong>${list.length ? 'Por hoje é isso.' : 'Tudo visto por aqui.'}</strong>Vá viver a vida lá fora.`
       : '';
     if (hidden && !showWatched) {
@@ -373,8 +411,17 @@
       : DATA?.gerado ? 'Lista atualizada ' + agoCurto(DATA.gerado) + '.' : '';
   }
 
-  let musicWas = false;
-  function openVideo(id) {
+  let musicWas = false, atual = null;
+  function atualizaFav() {
+    const on = atual && favs.tem(atual.id);
+    $('favBtn').textContent = on ? '★ Favoritado' : '☆ Favoritar';
+    $('favBtn').classList.toggle('on', !!on);
+  }
+  $('favBtn').onclick = () => { if (atual) { favs.alterna(atual); atualizaFav(); } };
+
+  function openVideo(id, v) {
+    atual = v ?? { id, title: '', channel: '', published: new Date().toISOString() };
+    atualizaFav();
     markWatched(id);
     musicWas = window.Musica ? window.Musica.suspend() : false;
     $('yt').href = 'https://www.youtube.com/watch?v=' + id;
@@ -454,7 +501,7 @@
       b.querySelector('img').src = `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`;
       b.querySelector('strong').textContent = v.title;
       b.querySelector('small').textContent = [v.channel, v.cat, ago(v.published)].filter(Boolean).join(' · ');
-      b.onclick = () => { $('search').close(); openVideo(v.id); };
+      b.onclick = () => { $('search').close(); openVideo(v.id, v); };
       $('hits').appendChild(b);
     });
     $('searchFoot').textContent = !q
