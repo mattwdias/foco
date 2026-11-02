@@ -18,6 +18,18 @@ window.CONFIG = {
     volume: 40          // 0 a 100
   },
 
+  // Vídeos que já entram nos favoritos na primeira visita.
+  // Se você remover depois, não voltam.
+  favoritosIniciais: [
+    {
+      id: "QkXfWALFQ68",
+      title: "Learn English in 10 Hours - ALL YOU NEED TO SPEAK ENGLISH FLUENTLY",
+      channel: "JForrest English",
+      published: "2025-03-21T12:00:42Z",
+      cat: "Inglês"
+    }
+  ],
+
   categorias: [
     {
       nome: "Vida",
@@ -31,6 +43,12 @@ window.CONFIG = {
       nome: "Música",
       canais: [
         { nome: "Gibran Alcocer", id: "UC_6zyKjvT-qt1Uf-_yqHb4Q" }   // pianista
+      ]
+    },
+    {
+      nome: "Inglês",
+      canais: [
+        { nome: "JForrest English", id: "UCLNBasuHKOILIwewAetJO6g" }   // youtube.com/@JForrestEnglish
       ]
     },
     {

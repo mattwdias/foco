@@ -629,7 +629,23 @@
   renderTabs();
   $('grid').innerHTML = '<p class="msg">Carregando…</p>';
 
+  /* ---------- favoritos vindos do config: entram uma vez só ---------- */
+  function semearFavoritos() {
+    const iniciais = C.favoritosIniciais ?? [];
+    if (!iniciais.length) return;
+    const feitos = new Set(ls.get('favSemeados', []));
+    let mudou = false;
+    iniciais.forEach(v => {
+      if (!v?.id || feitos.has(v.id)) return;
+      feitos.add(v.id);
+      mudou = true;
+      if (!favs.tem(v.id)) favs.alterna(v);   // respeitando remoção posterior
+    });
+    if (mudou) ls.set('favSemeados', [...feitos]);
+  }
+
   (async () => {
+    semearFavoritos();
     await loadData();
     results = await Promise.all(C.categorias.map(async cat => {
       const settled = await Promise.all(cat.canais.map(ch =>
