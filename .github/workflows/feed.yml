@@ -5,7 +5,6 @@ on:
     - cron: '7 */3 * * *'     # de 3 em 3 horas
   push:
     branches: [main]
-    paths: ['config.js', 'scripts/build-feed.mjs', '.github/workflows/feed.yml']
   workflow_dispatch:
 
 permissions:
