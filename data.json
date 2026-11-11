@@ -1,7 +1,19 @@
 {
- "gerado": "2026-11-02T19:55:19.672Z",
+ "gerado": "2026-11-11T01:37:29.791Z",
  "canais": {
   "UCiKhN0fi01tPKjK5tweGL2Q": [
+   {
+    "id": "jRb-7Qdpb5Q",
+    "title": "Quando você decide que tudo vai dar certo, simplesmente dá",
+    "channel": "Rafael Gratta",
+    "published": "2026-11-10T19:30:39+00:00"
+   },
+   {
+    "id": "dHaTQDhq_JE",
+    "title": "Você não precisa esquecer para seguir em frente",
+    "channel": "Rafael Gratta",
+    "published": "2026-11-06T20:37:30+00:00"
+   },
    {
     "id": "p2q9zkyEs7U",
     "title": "Ninguém mais sabe no que acreditar.",
@@ -194,7 +206,7 @@
    },
    {
     "id": "YdvK7JMHqF4",
-    "title": "Você faz parte da primeira geração da obesidade mental",
+    "title": "Você não é preguiçoso, é obesidade mental",
     "channel": "Pinho",
     "published": "2026-10-27T22:00:05+00:00"
    },
@@ -365,8 +377,26 @@
   ],
   "UCLNBasuHKOILIwewAetJO6g": [
    {
+    "id": "uPDztCh6pTU",
+    "title": "Read an Advanced (C1) Article with Me | Reading & Listening Method for Fluency",
+    "channel": "JForrest English",
+    "published": "2026-11-09T13:00:32+00:00"
+   },
+   {
+    "id": "43Yd1omgqP0",
+    "title": "30 Minutes of Fast English Listening Practice",
+    "channel": "JForrest English",
+    "published": "2026-11-06T13:00:37+00:00"
+   },
+   {
+    "id": "ArZ3Q8dcpg8",
+    "title": "SAY or TELL, SPEAK or TALK, LEARN or TEACH | Confusing English Verbs",
+    "channel": "JForrest English",
+    "published": "2026-11-04T13:00:32+00:00"
+   },
+   {
     "id": "GAinRlLhAr0",
-    "title": "China’s Rare Earth Deadline 🇨🇳 Learn English with the News",
+    "title": "Improve Your English Vocabulary with the News",
     "channel": "JForrest English",
     "published": "2026-11-02T13:00:11+00:00"
    },
@@ -637,6 +667,476 @@
     "title": "The easiest ways to save weight in your bag or suitcase",
     "channel": "Sven's One Bag Life",
     "published": "2026-01-25T16:00:52+00:00"
+   }
+  ]
+ },
+ "shorts": {
+  "UCiKhN0fi01tPKjK5tweGL2Q": [
+   {
+    "id": "wP3hFXxQrzU",
+    "title": "…com uma facilidade quase sobrenatural",
+    "channel": "Rafael Gratta",
+    "published": "2026-11-10T21:39:33+00:00"
+   },
+   {
+    "id": "FW9mXKjlXTY",
+    "title": "…onde a traça e a ferrugem consomem quer dizer",
+    "channel": "Rafael Gratta",
+    "published": "2026-11-10T12:27:55+00:00"
+   },
+   {
+    "id": "2LCcNcfW43M",
+    "title": "…você não furou só com uma tarefa",
+    "channel": "Rafael Gratta",
+    "published": "2026-11-09T15:16:18+00:00"
+   },
+   {
+    "id": "koNP76FUBh8",
+    "title": "…primeiro você tem que entender que ganhe músculo é…",
+    "channel": "Rafael Gratta",
+    "published": "2026-11-08T14:37:16+00:00"
+   },
+   {
+    "id": "S5i0IKVKJNw",
+    "title": "…mas a palavra em grego significa revelação.",
+    "channel": "Rafael Gratta",
+    "published": "2026-11-07T15:04:56+00:00"
+   },
+   {
+    "id": "jQnpXR0BJb8",
+    "title": "…o nome aparece numa conversa",
+    "channel": "Rafael Gratta",
+    "published": "2026-11-06T21:54:12+00:00"
+   },
+   {
+    "id": "tDQoDkbPUWM",
+    "title": "…não é teoria é história",
+    "channel": "Rafael Gratta",
+    "published": "2026-11-06T15:14:40+00:00"
+   },
+   {
+    "id": "f-L73Feexd0",
+    "title": "…é viciado em novidade",
+    "channel": "Rafael Gratta",
+    "published": "2026-11-05T14:42:53+00:00"
+   },
+   {
+    "id": "OrvsFhWsaJA",
+    "title": "…mesmo que nunca tenha acertado nada",
+    "channel": "Rafael Gratta",
+    "published": "2026-11-04T14:00:53+00:00"
+   },
+   {
+    "id": "AdeKAT5fQi4",
+    "title": "…essa frase de Jesus irrita porque…",
+    "channel": "Rafael Gratta",
+    "published": "2026-11-03T14:49:10+00:00"
+   },
+   {
+    "id": "kBnsMMOOzbo",
+    "title": "…porque estão sozinhas. Eu acho que é porque…",
+    "channel": "Rafael Gratta",
+    "published": "2026-11-02T14:31:24+00:00"
+   },
+   {
+    "id": "1RQE9ErLheI",
+    "title": "…se a notícia era real, se…",
+    "channel": "Rafael Gratta",
+    "published": "2026-11-01T16:59:28+00:00"
+   },
+   {
+    "id": "zG-GkINXuPw",
+    "title": "…isso não é azar",
+    "channel": "Rafael Gratta",
+    "published": "2026-10-31T15:18:59+00:00"
+   },
+   {
+    "id": "3Wfoa6RIT7Q",
+    "title": "…responde apenas correria porque…",
+    "channel": "Rafael Gratta",
+    "published": "2026-10-30T22:24:37+00:00"
+   },
+   {
+    "id": "8027W6l84Fg",
+    "title": "…e é isso que acaba com uma civilização",
+    "channel": "Rafael Gratta",
+    "published": "2026-10-29T14:48:04+00:00"
+   }
+  ],
+  "UChE9LYDtlxXnE3JXMDKhymQ": [
+   {
+    "id": "zZkYG3csTo4",
+    "title": "#hábitos #ideias #disciplina #leitura #sucesso",
+    "channel": "Bagetti",
+    "published": "2024-05-06T01:34:40+00:00"
+   },
+   {
+    "id": "N1ch7KfD990",
+    "title": "Expanda",
+    "channel": "Bagetti",
+    "published": "2024-05-03T15:39:33+00:00"
+   },
+   {
+    "id": "XWiyXZL3VRI",
+    "title": "Apenas 4 hábitos #hábitos #academia #motivação #disciplina #relacionamento #saudemental #mente #",
+    "channel": "Bagetti",
+    "published": "2024-03-25T23:54:23+00:00"
+   },
+   {
+    "id": "ofSyOt1dJIY",
+    "title": "Você continuará sendo esquecido. #animação #evolução #foco #hábitos #marketing #vida",
+    "channel": "Bagetti",
+    "published": "2024-03-20T22:45:00+00:00"
+   },
+   {
+    "id": "aJYUuDRZaKM",
+    "title": "ESCREVA #escritas #organização #hábitos #comece",
+    "channel": "Bagetti",
+    "published": "2024-03-15T18:15:21+00:00"
+   },
+   {
+    "id": "EtCVCXVTvd4",
+    "title": "ACORDE #rotinadodia #matrix #marketing #animação #hábitos #mudancadevida",
+    "channel": "Bagetti",
+    "published": "2024-03-14T01:33:36+00:00"
+   },
+   {
+    "id": "5zj5deqr7Fs",
+    "title": "O longo prazo irá mostrar #dieta#shape#escrever#longoprazo #process",
+    "channel": "Bagetti",
+    "published": "2024-02-14T21:00:15+00:00"
+   },
+   {
+    "id": "gE2ANzCCv94",
+    "title": "ATLETA HÍBRIDO#correr #atleta #híbrido#academia#run #disciplina",
+    "channel": "Bagetti",
+    "published": "2023-12-12T23:29:49+00:00"
+   },
+   {
+    "id": "QSklIa5OIYE",
+    "title": "REALIDADES                                            #mentalidade #motivacao #felicidade#disciplina",
+    "channel": "Bagetti",
+    "published": "2023-12-05T23:44:41+00:00"
+   },
+   {
+    "id": "biqIasYDpKA",
+    "title": "RUN TROUGH THE JINGLE #correr #running #discipline #run",
+    "channel": "Bagetti",
+    "published": "2023-11-20T22:02:59+00:00"
+   },
+   {
+    "id": "x39KY0UJ8p4",
+    "title": "DICÇÃO E COMUNICAÇÃO #dicção #comunicação #falarempúblico",
+    "channel": "Bagetti",
+    "published": "2023-11-20T21:55:02+00:00"
+   },
+   {
+    "id": "2tNPra5iiB8",
+    "title": "Changes .#change #motivation#desenvolvimentopessoal #fyp #discipline",
+    "channel": "Bagetti",
+    "published": "2023-10-02T22:42:37+00:00"
+   }
+  ],
+  "UC7Xog4-zhRQKbahvs27I7Ow": [
+   {
+    "id": "FzY27Ayx1us",
+    "title": "Você não é o seu passado",
+    "channel": "Pinho",
+    "published": "2025-11-20T01:43:13+00:00"
+   },
+   {
+    "id": "paW1t9F3oVw",
+    "title": "Antes de agradar alguém, pense se isso te agrada.",
+    "channel": "Pinho",
+    "published": "2025-11-18T02:20:08+00:00"
+   },
+   {
+    "id": "SR8Gr445zIQ",
+    "title": "Vencer o confronto é vencer a batalha, resolver um conflito é a acabar com a guerra!",
+    "channel": "Pinho",
+    "published": "2024-01-30T13:45:58+00:00"
+   },
+   {
+    "id": "PDWaHIGoEHo",
+    "title": "O que você está fazendo pelos seus sonhos ?",
+    "channel": "Pinho",
+    "published": "2023-09-15T01:17:23+00:00"
+   },
+   {
+    "id": "XYDKRF5ELrI",
+    "title": "Você pode mudar agora!",
+    "channel": "Pinho",
+    "published": "2023-08-17T16:51:43+00:00"
+   },
+   {
+    "id": "-wGiWyuVxnI",
+    "title": "Sofra agora, ou acumule pra depois.",
+    "channel": "Pinho",
+    "published": "2023-08-07T01:54:23+00:00"
+   },
+   {
+    "id": "xkeLXxRd0R0",
+    "title": "O Poder da Manhã",
+    "channel": "Pinho",
+    "published": "2023-07-16T15:00:48+00:00"
+   },
+   {
+    "id": "5Obq623CW2s",
+    "title": "6 Meses Pra Mudar de Vida",
+    "channel": "Pinho",
+    "published": "2023-07-15T19:42:55+00:00"
+   },
+   {
+    "id": "AVsg-R0xTdQ",
+    "title": "Pare de se preocupar com os outros e construa sua própria história",
+    "channel": "Pinho",
+    "published": "2023-07-06T01:37:27+00:00"
+   },
+   {
+    "id": "WBLi-uwLXOg",
+    "title": "Não Julgue as Aparências",
+    "channel": "Pinho",
+    "published": "2023-04-10T23:56:59+00:00"
+   },
+   {
+    "id": "sfBv86Nkr3g",
+    "title": "Medo x Ansiedade",
+    "channel": "Pinho",
+    "published": "2023-04-09T00:30:33+00:00"
+   },
+   {
+    "id": "vChyXs2DybQ",
+    "title": "Trabalhar Sem Vontade",
+    "channel": "Pinho",
+    "published": "2023-04-07T22:00:24+00:00"
+   },
+   {
+    "id": "0NIUXPjmFWQ",
+    "title": "Não Se Preocupe!",
+    "channel": "Pinho",
+    "published": "2023-04-05T22:00:00+00:00"
+   },
+   {
+    "id": "Ct-yLCFuFcI",
+    "title": "Eu Não Gostava de Estudar na Escola",
+    "channel": "Pinho",
+    "published": "2023-03-15T15:00:08+00:00"
+   },
+   {
+    "id": "53lewX9k8PY",
+    "title": "Porque é Difícil Mudar?",
+    "channel": "Pinho",
+    "published": "2023-03-14T15:00:04+00:00"
+   }
+  ],
+  "UC_6zyKjvT-qt1Uf-_yqHb4Q": [
+   {
+    "id": "1kZZSsGdKN0",
+    "title": "Ideas set list live from Elbphilharmonie, available tomorrow!​⁠​⁠​⁠@ElbphilharmonieHamburg",
+    "channel": "Gibran Alcocer",
+    "published": "2025-07-24T18:53:40+00:00"
+   },
+   {
+    "id": "nJrTwNHWuhU",
+    "title": "Making of Idea 12 (out now!) #gibranalcocer #cinematic #music #piano #shorts",
+    "channel": "Gibran Alcocer",
+    "published": "2025-05-14T18:52:45+00:00"
+   },
+   {
+    "id": "TAvlK1Z0jeo",
+    "title": "In the studio, New official channel! #gibranalcocer",
+    "channel": "Gibran Alcocer",
+    "published": "2024-11-25T22:27:19+00:00"
+   },
+   {
+    "id": "QA85fdAxyj8",
+    "title": "Idea 5 (Out now!)",
+    "channel": "Gibran Alcocer",
+    "published": "2024-11-23T18:58:16+00:00"
+   }
+  ],
+  "UCLNBasuHKOILIwewAetJO6g": [
+   {
+    "id": "ycZd6d8BT4c",
+    "title": "Male vs Female Animal Names in English",
+    "channel": "JForrest English",
+    "published": "2026-11-10T17:00:30+00:00"
+   },
+   {
+    "id": "lsAqx52vP7U",
+    "title": "What does the 🌿 really mean? Nature Vocabulary and Their Other MEANINGS",
+    "channel": "JForrest English",
+    "published": "2026-11-10T11:00:29+00:00"
+   },
+   {
+    "id": "Jsdp7ZcRGa4",
+    "title": "10 Group Names You Should Know | Advanced English Vocabulary",
+    "channel": "JForrest English",
+    "published": "2026-11-09T17:00:31+00:00"
+   },
+   {
+    "id": "Fgw1G0XjLT4",
+    "title": "Start Using These 6 Common Idioms to Sound Like a Native Speaker!",
+    "channel": "JForrest English",
+    "published": "2026-11-09T11:00:05+00:00"
+   },
+   {
+    "id": "8q1zo9K-yEI",
+    "title": "One 🧼 is called  ______ | SINGLE VOCABULARY #learnenglish #shorts",
+    "channel": "JForrest English",
+    "published": "2026-11-08T11:00:20+00:00"
+   },
+   {
+    "id": "DLe5b8EAvKU",
+    "title": "20 Eye and Hand Verbs You NEED to Know in English!",
+    "channel": "JForrest English",
+    "published": "2026-11-07T11:00:13+00:00"
+   },
+   {
+    "id": "7WwqdR-nBAk",
+    "title": "Learn Phrasal Verbs WITH ME and Sound like a NATIVE #learnenglish",
+    "channel": "JForrest English",
+    "published": "2026-11-06T10:00:27+00:00"
+   },
+   {
+    "id": "UXWx1AXn5zw",
+    "title": "FAMILY VOCABULARY IN ENGLISH | Siblings, Niblings, Cousins",
+    "channel": "JForrest English",
+    "published": "2026-11-05T10:00:34+00:00"
+   },
+   {
+    "id": "QkkV65bMZDs",
+    "title": "Stop Saying COLD (Say These Instead!)",
+    "channel": "JForrest English",
+    "published": "2026-11-04T10:00:39+00:00"
+   },
+   {
+    "id": "isi1xZpiFgs",
+    "title": "Computer Problems in English | Learn English Vocabulary",
+    "channel": "JForrest English",
+    "published": "2026-11-03T10:00:02+00:00"
+   },
+   {
+    "id": "rZrtbLpQLR0",
+    "title": "Formal Words vs Slang #vocabulary",
+    "channel": "JForrest English",
+    "published": "2026-11-02T10:00:27+00:00"
+   },
+   {
+    "id": "3r62AdbrvRM",
+    "title": "Collar or Color? Words with Similar Pronunciations but Different Meanings! #english",
+    "channel": "JForrest English",
+    "published": "2026-11-01T09:00:29+00:00"
+   },
+   {
+    "id": "2JDSM9u6BTk",
+    "title": "Replace 2 words with 1! #english",
+    "channel": "JForrest English",
+    "published": "2026-10-31T09:00:14+00:00"
+   },
+   {
+    "id": "2U0xb6tQWtw",
+    "title": "❌ Don’t Pronounce C and G in these Words! #english",
+    "channel": "JForrest English",
+    "published": "2026-10-30T09:00:19+00:00"
+   },
+   {
+    "id": "0hMP7tMAoqM",
+    "title": "4 Slang Expressions (with Numbers) Only American Say",
+    "channel": "JForrest English",
+    "published": "2026-10-29T09:00:13+00:00"
+   }
+  ],
+  "UCysb54tfQHGIK9jB2VI8_HQ": [
+   {
+    "id": "J4tpBVkmiPg",
+    "title": "O veludo faz o chifre crescer depois cai. Aí o chifre cai e todo ano começa tudo denovo",
+    "channel": "Chicco Mattos",
+    "published": "2025-09-05T13:43:48+00:00"
+   },
+   {
+    "id": "c8wcf4QxDIE",
+    "title": "Saiba disso antes de vir pro Ártico! 😯",
+    "channel": "Chicco Mattos",
+    "published": "2025-09-03T22:24:26+00:00"
+   },
+   {
+    "id": "6-ixS91uTBA",
+    "title": "O dia que encontrei a mamãe urso ensinando seus filhotes a nadar",
+    "channel": "Chicco Mattos",
+    "published": "2025-09-02T21:32:35+00:00"
+   },
+   {
+    "id": "4BMXJ5czGRQ",
+    "title": "Campeonato de escultura no gelo",
+    "channel": "Chicco Mattos",
+    "published": "2025-09-01T22:07:21+00:00"
+   },
+   {
+    "id": "qUr99a2fXP8",
+    "title": "Quando a Aurora Boreal se junta com o sol da meia noite 😍💛💚",
+    "channel": "Chicco Mattos",
+    "published": "2025-08-31T23:01:08+00:00"
+   },
+   {
+    "id": "X4AuwKJv53E",
+    "title": "A aurora boreal é ainda mais impressionante a olho nu 😍",
+    "channel": "Chicco Mattos",
+    "published": "2025-08-30T22:55:16+00:00"
+   },
+   {
+    "id": "2OxkwqUyEZ4",
+    "title": "A mamãe não para de mimar o filho 😅❤️",
+    "channel": "Chicco Mattos",
+    "published": "2025-08-29T22:38:23+00:00"
+   },
+   {
+    "id": "Pz8sJhHY3GQ",
+    "title": "O verdadeiro polo Norte",
+    "channel": "Chicco Mattos",
+    "published": "2025-08-28T23:37:50+00:00"
+   },
+   {
+    "id": "ac-M_eUBiPA",
+    "title": "O que os gringos pensam quando descobrem que sou Brasileiro",
+    "channel": "Chicco Mattos",
+    "published": "2025-08-27T23:00:48+00:00"
+   },
+   {
+    "id": "FkiBPEA95iE",
+    "title": "Esses são meus 3 Malamutes do Alaska 😍",
+    "channel": "Chicco Mattos",
+    "published": "2025-08-26T23:15:35+00:00"
+   },
+   {
+    "id": "xUh8g5Nv00w",
+    "title": "A natureza é a melhor terapia. 😍",
+    "channel": "Chicco Mattos",
+    "published": "2025-08-25T23:24:35+00:00"
+   },
+   {
+    "id": "J1FWa-qR7f8",
+    "title": "Olha o que essa raposa do ártico aprontou 😂",
+    "channel": "Chicco Mattos",
+    "published": "2025-08-24T22:46:47+00:00"
+   },
+   {
+    "id": "nhlA6RWPKvU",
+    "title": "Dá pra ver Aurora só no frio?",
+    "channel": "Chicco Mattos",
+    "published": "2025-08-23T22:49:02+00:00"
+   },
+   {
+    "id": "NWPoyblhMp8",
+    "title": "A natureza é incrível 😍",
+    "channel": "Chicco Mattos",
+    "published": "2025-08-22T23:12:18+00:00"
+   },
+   {
+    "id": "q1iHxqJk6WA",
+    "title": "Coisas baratas no Brasil e caras no Ártico 💸",
+    "channel": "Chicco Mattos",
+    "published": "2025-08-21T23:06:52+00:00"
    }
   ]
  }
