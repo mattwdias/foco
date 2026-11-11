@@ -238,7 +238,15 @@ Ao mudar os essenciais, **suba o `CACHE = 'foco-vN'`** — é o que apaga o cach
 
 Gerados por script, sem dependência, mantendo a regra de "nada de npm". Fundo na cor de
 acento (`#0071e3`) e um F branco dentro da zona segura do ícone maskable (os 80% centrais).
-Para regerar, o script está na mensagem do commit que os criou.
+Para regerar ou mudar a cor, o script é `scripts/icones.py`:
+
+```sh
+python3 -I scripts/icones.py    # reescreve os dois PNG na raiz, byte a byte iguais
+```
+
+As proporções estão lá: fundo cheio (o launcher do Android é quem arredonda) e o F dentro
+dos 80% centrais, que é a zona segura do `maskable`. Mexer no `t`, `x0`, `y0` e `y1` muda a
+espessura e a caixa da letra.
 
 ## Convenções
 
