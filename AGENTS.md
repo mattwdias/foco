@@ -115,6 +115,26 @@ Tem `permissions: contents: write`, que basta — o padrão do repo é `read`, m
 workflow sobrepõe. Não há risco de laço: o commit do job sai com `GITHUB_TOKEN`, e push
 feito com esse token não dispara workflow.
 
+### Limitação conhecida, a mais grave: o Actions não alcança o YouTube
+
+Desde 10/11/2026, **todos os sete canais devolvem 404 quando o job roda no GitHub Actions**,
+inclusive nos feeds que sempre funcionaram (`channel_id` e `UULF`). Da máquina local, os
+mesmos URLs respondem 200 no mesmo minuto. É bloqueio de IP de datacenter, conhecido desde
+dezembro de 2025 e que também atinge Vercel, AWS e Lambda — não é erro do código, e **a
+retentativa com espera crescente não resolve**: três tentativas por feed falharam igual.
+
+Foi isso que deixou o `data.json` parado por 8 dias com a rodada terminando verde. O script
+agora **sai com código 1 quando todos os canais falham**, justamente para não mentir de novo.
+
+Enquanto durar, atualizar é rodar da sua máquina e commitar à mão:
+
+```sh
+node scripts/build-feed.mjs && git add data.json && git commit -m "Atualiza o arquivo" && git push
+```
+
+As saídas de verdade, se isso incomodar: um secret `YOUTUBE_API_KEY` (o `googleapis.com`
+não bloqueia datacenter, e o caminho já está no script), ou um runner self-hosted.
+
 ### Limitação conhecida: só o disparo manual funciona
 
 Nos testes deste repo, **nem push nem cron criaram run**; apenas `workflow_dispatch`.
