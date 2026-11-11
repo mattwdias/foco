@@ -39,10 +39,20 @@ function parseFeed(xml) {
   })).filter(v => v.id);
 }
 
-async function feed(url) {
-  const r = await fetch(url, { headers: { 'user-agent': 'foco-feed' } });
-  if (!r.ok) throw new Error(url + ' -> ' + r.status);
-  return parseFeed(await r.text());
+// O YouTube devolve 404 e 500 intermitentes para requisição de IP de datacenter — o Actions
+// é um deles —, e o mesmo URL responde normalmente de um navegador. Então uma falha não
+// significa canal inexistente: tenta de novo com espera crescente antes de desistir.
+async function feed(url, tentativas = 3) {
+  let ultimo;
+  for (let i = 0; i < tentativas; i++) {
+    if (i) await new Promise(r => setTimeout(r, 1500 * 2 ** (i - 1)));
+    try {
+      const r = await fetch(url, { headers: { 'user-agent': 'foco-feed' } });
+      if (r.ok) return parseFeed(await r.text());
+      ultimo = new Error(url + ' -> ' + r.status);
+    } catch (e) { ultimo = e; }
+  }
+  throw ultimo;
 }
 
 const RSS = 'https://www.youtube.com/feeds/videos.xml?';
@@ -58,7 +68,8 @@ async function shortsDoCanal(ch) {
     const v = await viaApi(ch, 'UUSH', guardarShorts).catch(() => null);
     if (v?.length) return { via: 'api UUSH', videos: v };
   }
-  const direto = await feed(playlist('UUSH', ch)).catch(() => null);
+  // uma tentativa só: canal sem shorts não tem essa playlist, e a eliminação cobre o caso
+  const direto = await feed(playlist('UUSH', ch), 1).catch(() => null);
   if (direto?.length) return { via: 'UUSH', videos: direto };
 
   // Sem a UULF não há como eliminar: deixar o erro subir é melhor do que marcar
@@ -151,6 +162,13 @@ for (const ch of canais) {
 }
 
 if (!Object.keys(out).length) { console.log('nenhum canal carregou — data.json intocado'); process.exit(1); }
+
+// Falhar alto: antes, com todos os canais falhando, o arquivo velho era preservado, nada
+// mudava e a rodada terminava verde. O site servia lista parada e ninguém ficava sabendo.
+if (erros === canais.length) {
+  console.log(`nenhum canal respondeu (${erros} falha(s)) — arquivo preservado, mas isto é falha`);
+  process.exit(1);
+}
 
 // canais que saíram do config.js deixam de ser guardados; os que falharam já foram preservados acima
 if (antigo && JSON.stringify(antigo.canais) === JSON.stringify(out)
