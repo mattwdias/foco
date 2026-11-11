@@ -16,6 +16,9 @@ YouTube, em categorias, para fugir de recomendação e rolagem infinita.
 | `data.json` | **Gerado pelo job. Nunca editar à mão.** Arquivo de vídeos por canal |
 | `scripts/build-feed.mjs` | Busca os feeds e mantém o `data.json` |
 | `.github/workflows/feed.yml` | Roda o script e commita o `data.json` quando muda |
+| `manifest.json` | Manifesto do PWA: nome, ícones, `display: standalone` |
+| `sw.js` | Service worker. É ele que torna o site instalável como app |
+| `icone-192.png`, `icone-512.png` | Ícones do app, gerados por script, sem dependência |
 
 ## config.js
 
@@ -25,7 +28,7 @@ YouTube, em categorias, para fugir de recomendação e rolagem infinita.
 | `porCanal` | Quantos vídeos **aparecem** de cada canal (hoje 15) |
 | `buscaPorCanal` | Quantos ficam **guardados** por canal, para a busca (hoje 100) |
 | `cacheHoras` | TTL do cache de emergência no navegador, usado só se o `data.json` faltar |
-| `shorts` | Aba Shorts: `minutos` de orçamento, `esperaHoras` de bloqueio, `baralho` (quantos por sessão) e `guardar` (quantos o job arquiva por canal). Apagar o bloco remove a aba |
+| `shorts` | Aba Shorts: `minutos` de orçamento, `esperaHoras` de bloqueio, `baralho` (quantos por sessão, hoje 200) e `guardar` (quantos o job arquiva por canal, hoje 300). Apagar o bloco remove a aba |
 | `musica` | Player discreto no canto. Apagar o bloco desliga |
 | `favoritosIniciais` | Vídeos que entram nos favoritos na primeira visita |
 | `categorias` | Lista de categorias, cada uma com seus canais |
@@ -40,7 +43,8 @@ YouTube, em categorias, para fugir de recomendação e rolagem infinita.
 | Viagens | Chicco Mattos, Sven's One Bag Life |
 
 A aba **★ Favoritos** vem depois dessas e **não** fica no config: é gerada pelo
-`index.html` e alimentada pelo navegador de quem acessa.
+`index.html` e alimentada pelo navegador de quem acessa. A aba **Shorts** vem **antes** de
+todas, e também não fica no config — só a chave `shorts` liga ou desliga ela.
 
 ### Adicionar um canal
 
@@ -193,12 +197,48 @@ sai do arquivo de `buscaPorCanal`.
   canal na etiqueta à esquerda, em ordem alfabética. Não é o padrão; fica salvo.
 - **Tema** (`◐`): auto → claro → escuro.
 - **Favoritos:** estrela no card e botão no player.
-- **Shorts** (última aba): baralho **finito** de `baralho` shorts, embaralhado e intercalado
-  por canal, em pista vertical com encaixe. **Um player por vez:** o `IntersectionObserver`
-  diz quem está encaixado, e o `YT.Player` é criado ali e destruído ao sair — é o que permite
-  contar tempo pelos eventos de reprodução em vez de tempo de parede. O cronômetro é um fio de
-  2px acima da pista; o relógio em mm:ss só aparece no último minuto. Zerado, grava
-  `shortsAte` e a aba fecha até a espera passar.
+- **Shorts** (primeira aba): **não é uma aba de página.** Ela abre a camada `#shTela`, de
+  tela cheia, e deixa `current` onde estava — por isso a seta `←` no canto (ou `Esc`, ou
+  clicar na aba de novo) devolve exatamente a categoria de onde se saiu. Enquanto aberta,
+  `document.body` fica com `overflow: hidden`.
+  Dentro: baralho **finito** de `baralho` shorts, embaralhado e intercalado por canal, em
+  pista vertical com encaixe. O short é 9:16, então em tela larga vira uma coluna centrada —
+  `.sh-quadro` tem `aspect-ratio`, e o vídeo nunca é esticado.
+  **Um player por vez:** o `IntersectionObserver` diz quem está encaixado, e o `YT.Player` é
+  criado ali e destruído ao sair — é o que permite contar tempo pelos eventos de reprodução
+  em vez de tempo de parede. O cronômetro é um fio de 2px no topo da tela; o relógio em mm:ss
+  só aparece no último minuto. Zerado, grava `shortsAte` e a camada passa a mostrar o aviso.
+
+  **A aba vem primeiro de propósito.** Ela nasceu em último e ficava invisível no celular:
+  `.tabs` tem `overflow-x: auto`, e a sexta aba ficava rolada para fora da tela.
+
+## PWA: instalar como app no Android
+
+Três peças, e o Chrome só oferece "Instalar app" com as três:
+
+1. **`manifest.json`** — `display: standalone`, `start_url`/`scope` relativos (`./`), porque o
+   site mora em `/foco/` e caminho absoluto quebraria. Ícones de 192 e 512, o de 512 também
+   declarado `maskable`.
+2. **`sw.js`** — service worker com handler de `fetch`. Sem ele não há convite de instalação.
+3. **As tags no `<head>`** — `<link rel="manifest">`, `theme-color` por esquema de cor e
+   `apple-touch-icon` para o iPhone.
+
+**A estratégia do cache é rede primeiro, e isso é decisão, não descuido.** Cache primeiro
+seria mais rápido, mas este repo já serviu conteúdo velho como se fosse novo — o `data.json`
+parado oito dias. Um app que guarda o HTML antigo repete isso na mão de quem usa e sem botão
+fácil de limpar. Com rede, sempre o atual; sem rede, a última versão que funcionou.
+
+Requisição de outra origem (YouTube, thumbnail, proxy) **passa direto**, sem cache: resposta
+opaca não serve para nada e só ocuparia espaço.
+
+Ao mudar os essenciais, **suba o `CACHE = 'foco-vN'`** — é o que apaga o cache antigo no
+`activate`.
+
+### Os ícones
+
+Gerados por script, sem dependência, mantendo a regra de "nada de npm". Fundo na cor de
+acento (`#0071e3`) e um F branco dentro da zona segura do ícone maskable (os 80% centrais).
+Para regerar, o script está na mensagem do commit que os criou.
 
 ## Convenções
 
@@ -218,6 +258,9 @@ sai do arquivo de `buscaPorCanal`.
   carregamento contínuo, e não tirar o limite de tempo para "deixar escolher na hora".
 - **O cronômetro conta reprodução, não tempo de parede**, e o saldo é persistido. Trocar por
   `setInterval` solto devolveria tempo a cada recarga e puniria quem sai da aba.
+- **O service worker é rede primeiro.** Não inverter para cache primeiro em nome de
+  velocidade: o custo é servir conteúdo velho sem avisar, que é o problema que este repo já
+  teve uma vez.
 
 ## Verificação antes de publicar
 

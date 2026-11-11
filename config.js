@@ -14,8 +14,8 @@ window.CONFIG = {
   shorts: {
     minutos: 5,        // orçamento por sessão, contando só tempo de reprodução
     esperaHoras: 1,    // depois de zerar, espera tanto antes de liberar de novo
-    baralho: 10,       // quantos shorts entram na sessão (~30s cada = ~5 min)
-    guardar: 60        // quantos shorts o job guarda por canal no data.json
+    baralho: 200,      // quantos shorts entram na sessão — o teto real é o tempo, não a contagem
+    guardar: 300       // quantos shorts o job guarda por canal no data.json
   },
 
   // Música de fundo (player discreto no canto inferior direito)

@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Foco</title>
+<!-- PWA: o que o Android precisa para oferecer "Instalar app" -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icone-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icone-192.png">
+<meta name="application-name" content="Foco">
+<meta name="apple-mobile-web-app-title" content="Foco">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#fbfbfd" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <style>
   :root {
     --bg: #fbfbfd; --card: #ffffff; --text: #1d1d1f; --muted: #6e6e73;
@@ -72,30 +83,44 @@
   }
   .search-btn.on { opacity: 1; color: var(--accent); }
 
-  /* ---- Shorts: baralho finito, rolagem com encaixe ---- */
-  .sh-wrap { max-width: 420px; margin: 0 auto; }
-  .sh-fio { height: 2px; border-radius: 2px; background: var(--seg); overflow: hidden; margin-bottom: 10px; }
-  .sh-fio i { display: block; height: 100%; background: var(--text); opacity: .22; transition: width .9s linear; }
-  .shorts { height: min(76vh, 700px); overflow-y: auto; scroll-snap-type: y mandatory;
-    -webkit-overflow-scrolling: touch; border-radius: 18px; background: #000;
-    box-shadow: var(--shadow); scrollbar-width: none; }
+  /* ---- Shorts: tela cheia, baralho finito, rolagem com encaixe ---- */
+  .sh-tela { position: fixed; inset: 0; z-index: 40; background: #000; display: none; }
+  .sh-tela.on { display: block; }
+  .sh-fio { position: absolute; top: 0; left: 0; right: 0; height: 2px; z-index: 3;
+    background: rgba(255,255,255,.14); overflow: hidden; }
+  .sh-fio i { display: block; height: 100%; background: #fff; opacity: .6; transition: width .9s linear; }
+  .sh-volta { position: absolute; z-index: 4; top: max(12px, env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left)); width: 38px; height: 38px; border: 0; cursor: pointer;
+    border-radius: 999px; background: rgba(0,0,0,.45); color: #fff; font: inherit; font-size: 19px;
+    line-height: 1; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  .shorts { height: 100%; overflow-y: auto; scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none; }
   .shorts::-webkit-scrollbar { display: none; }
-  .sh-slot { position: relative; height: 100%; scroll-snap-align: center; scroll-snap-stop: always;
-    overflow: hidden; background: #000; }
-  .sh-slot > img { width: 100%; height: 100%; object-fit: cover; filter: brightness(.5); display: block; }
+  .sh-slot { height: 100%; scroll-snap-align: center; scroll-snap-stop: always;
+    display: grid; place-items: center; overflow: hidden; }
+  /* o short e 9:16: em tela larga vira uma coluna centrada, nao um video esticado */
+  .sh-quadro { position: relative; height: 100%; aspect-ratio: 9/16; max-width: 100%; overflow: hidden; }
+  .sh-quadro > img { width: 100%; height: 100%; object-fit: cover; filter: brightness(.5); display: block; }
   .sh-palco { position: absolute; inset: 0; }
   .sh-palco iframe { width: 100%; height: 100%; border: 0; display: block; }
-  .sh-cap { position: absolute; left: 14px; right: 14px; bottom: 16px; color: #fff; pointer-events: none;
-    font-size: 14px; font-weight: 600; letter-spacing: -.01em; text-shadow: 0 1px 12px rgba(0,0,0,.8); }
+  .sh-cap { position: absolute; left: 14px; right: 14px; bottom: max(16px, env(safe-area-inset-bottom));
+    color: #fff; pointer-events: none; font-size: 14px; font-weight: 600; letter-spacing: -.01em;
+    text-shadow: 0 1px 12px rgba(0,0,0,.8); }
   .sh-cap span { display: block; font-weight: 400; font-size: 12px; opacity: .85; margin-top: 3px; }
   .sh-toque { position: absolute; inset: 0; width: 100%; background: none; border: 0; cursor: pointer;
     color: #fff; font: inherit; font-size: 15px; display: grid; place-items: center; }
   .sh-toque b { font-weight: 500; background: rgba(0,0,0,.45); border-radius: 999px; padding: 9px 20px;
     -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-  /* o relógio só aparece no último minuto: discreto enquanto não importa */
-  .sh-relogio { position: fixed; z-index: 6; top: max(10px, env(safe-area-inset-top)); left: 50%;
-    transform: translateX(-50%); font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted);
-    background: var(--card); border: 1px solid var(--seg); border-radius: 999px; padding: 3px 11px;
+  .sh-aviso { position: absolute; inset: 0; display: none; place-items: center; text-align: center;
+    color: #fff; padding: 32px; }
+  .sh-aviso.on { display: grid; }
+  .sh-aviso strong { display: block; font-size: 22px; font-weight: 600; letter-spacing: -.02em; margin-bottom: 8px; }
+  .sh-aviso p { color: rgba(255,255,255,.7); font-size: 15px; max-width: 30ch; margin: 0 auto; }
+  /* o relogio so aparece no ultimo minuto: discreto enquanto nao importa */
+  .sh-relogio { position: absolute; z-index: 4; top: max(14px, env(safe-area-inset-top)); left: 50%;
+    transform: translateX(-50%); font-size: 12px; font-variant-numeric: tabular-nums; color: #fff;
+    background: rgba(0,0,0,.45); border-radius: 999px; padding: 3px 11px;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     opacity: 0; transition: opacity .4s ease; pointer-events: none; }
   .sh-relogio.on { opacity: .9; }
 
@@ -189,6 +214,14 @@
   <div class="end" id="end"></div>
   <footer id="foot"></footer>
 </main>
+
+<div class="sh-tela" id="shTela" role="dialog" aria-modal="true" aria-label="Shorts">
+  <div class="sh-fio"><i></i></div>
+  <button class="sh-volta" id="shVolta" aria-label="Voltar">&#8592;</button>
+  <div class="sh-relogio" id="shRelogio"></div>
+  <div class="shorts" id="shPista"></div>
+  <div class="sh-aviso" id="shAviso"></div>
+</div>
 
 <div class="music" id="music">
   <div class="music-card">
@@ -412,8 +445,9 @@
   const SH = C.shorts && { orcamento: (C.shorts.minutos ?? 5) * 60000,
                            espera: (C.shorts.esperaHoras ?? 1) * 36e5,
                            tamanho: C.shorts.baralho ?? 10 };
-  const iShorts = SH ? iFav + 1 : -1;
-
+  // A aba Shorts nao e uma aba de pagina: ela abre uma camada de tela cheia e deixa
+  // `current` onde estava, para a seta de voltar devolver a categoria de onde se saiu.
+  let shAberto = false;
   let shDeck = [], shAtivo = -1, shPlayer = null, shInterv = null, shUltimo = 0,
       shGesto = false, shObs = null, shMusicaWas = false;
 
@@ -525,7 +559,26 @@
     shMusicaWas = false;
   }
 
-  function shAcabou() { shSolta(); render(); }
+  function shAcabou() {
+    shSolta();
+    $('shPista').innerHTML = '';
+    shAvisa('Por hoje ja deu.', `Os ${C.shorts.minutos ?? 5} min acabaram. `
+      + `Volta a abrir em ${shFalta(ls.get('shortsAte', 0))}.`);
+  }
+
+  const shFalta = ate => {
+    const falta = Math.max(0, ate - Date.now());
+    const h = Math.floor(falta / 36e5), m = Math.ceil((falta % 36e5) / 6e4);
+    return h ? h + 'h' + String(m).padStart(2, '0') : m + ' min';
+  };
+
+  function shAvisa(titulo, texto) {
+    const a = $('shAviso');
+    a.innerHTML = '<div><strong></strong><p></p></div>';
+    a.querySelector('strong').textContent = titulo;
+    a.querySelector('p').textContent = texto;
+    a.classList.add('on');
+  }
 
   function shAtiva(i) {
     if (i === shAtivo || !shDeck[i]) return;
@@ -537,7 +590,7 @@
     const palco = document.createElement('div');
     palco.className = 'sh-palco';
     palco.appendChild(document.createElement('div'));
-    slots[i].appendChild(palco);
+    slots[i].querySelector('.sh-quadro').appendChild(palco);
     const v = shDeck[i];
     shApiPronta(() => {
       if (shAtivo !== i) return;                    // já rolou para outro antes de a API subir
@@ -557,69 +610,58 @@
     });
   }
 
-  function shRender() {
-    const grid = $('grid');
-    const est = shEstado();
-    grid.className = 'sh-wrap';
-    grid.innerHTML = '';
-    $('end').innerHTML = '';
-    $('foot').textContent = '';
+  // Abre a camada de tela cheia. Nao troca `current`: a seta de voltar so fecha a camada
+  // e a categoria que estava aberta continua atras, do jeito que estava.
+  function shAbre() {
+    shAberto = true;
+    $('shTela').classList.add('on');
+    document.body.style.overflow = 'hidden';
+    renderTabs();
 
-    if (est.preso) {
-      const falta = est.preso - Date.now();
-      const h = Math.floor(falta / 36e5), m = Math.ceil((falta % 36e5) / 6e4);
-      $('end').innerHTML = `<strong>Por hoje já deu.</strong>Os ${C.shorts.minutos ?? 5} min acabaram. `
-        + `Volta a abrir em ${h ? h + 'h' + String(m).padStart(2, '0') : m + ' min'}.`;
-      return;
-    }
+    const pista = $('shPista');
+    pista.innerHTML = '';
+    $('shAviso').className = 'sh-aviso';
+    $('shAviso').innerHTML = '';
+
+    const est = shEstado();
+    if (est.preso)
+      return shAvisa('Por hoje ja deu.', `Os ${C.shorts.minutos ?? 5} min acabaram. `
+        + `Volta a abrir em ${shFalta(est.preso)}.`);
 
     shDeck = shMonta();
-    if (!shDeck.length) {
-      $('end').innerHTML = '<strong>Nenhum short no arquivo ainda.</strong>'
-        + 'O job que busca os canais precisa rodar uma vez para encher o baralho.';
-      return;
-    }
+    if (!shDeck.length)
+      return shAvisa('Nenhum short no arquivo ainda.',
+        'O job que busca os canais precisa rodar uma vez para encher o baralho.');
 
-    const fio = document.createElement('div');
-    fio.className = 'sh-fio';
-    fio.innerHTML = '<i></i>';
-    const pista = document.createElement('div');
-    pista.className = 'shorts';
     shDeck.forEach((v, i) => {
       const slot = document.createElement('div');
       slot.className = 'sh-slot';
-      slot.innerHTML = '<img loading="lazy" alt=""><div class="sh-cap"></div>';
+      slot.innerHTML = '<div class="sh-quadro"><img loading="lazy" alt=""><div class="sh-cap"><b></b><span></span></div></div>';
       slot.querySelector('img').src = `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`;
-      slot.querySelector('.sh-cap').innerHTML = '<span></span>';
-      slot.querySelector('.sh-cap').insertBefore(document.createTextNode(v.title), slot.querySelector('.sh-cap span'));
-      slot.querySelector('.sh-cap span').textContent = [v.channel, `${i + 1} de ${shDeck.length}`].filter(Boolean).join(' · ');
+      slot.querySelector('.sh-cap b').textContent = v.title;
+      slot.querySelector('.sh-cap span').textContent =
+        [v.channel, `${i + 1} de ${shDeck.length}`].filter(Boolean).join(' \u00b7 ');
       pista.appendChild(slot);
     });
-    grid.append(fio, pista);
-    if (!$('shRelogio')) {
-      const r = document.createElement('div');
-      r.id = 'shRelogio'; r.className = 'sh-relogio';
-      document.body.appendChild(r);
-    }
     shPinta(est.saldo);
 
-    // o primeiro toque é o que libera som no navegador; até lá, um convite no slot ativo
+    // o primeiro toque e o que libera som no navegador; ate la, um convite no slot ativo
     if (!shGesto) {
       const b = document.createElement('button');
       b.className = 'sh-toque';
-      b.innerHTML = '<b>Toque para começar</b>';
+      b.innerHTML = '<b>Toque para come\u00e7ar</b>';
       b.onclick = () => {
         shGesto = true;
         shMusicaWas = window.Musica ? window.Musica.suspend() : false;
         b.remove();
         if (shPlayer) shPlayer.playVideo(); else shAtiva(0);
       };
-      pista.firstChild.appendChild(b);
+      pista.firstChild.querySelector('.sh-quadro').appendChild(b);
     } else {
       shMusicaWas = window.Musica ? window.Musica.suspend() : false;
     }
 
-    // quem está encaixado na tela é quem toca: um player por vez, criado e destruído
+    // quem esta encaixado na tela e quem toca: um player por vez, criado e destruido
     shObs?.disconnect();
     shObs = new IntersectionObserver(entradas => {
       entradas.forEach(en => {
@@ -629,6 +671,16 @@
     }, { root: pista, threshold: [.61] });
     [...pista.children].forEach(s => shObs.observe(s));
     shAtiva(0);
+  }
+
+  function shFecha() {
+    shSolta();
+    shAberto = false;
+    $('shTela').classList.remove('on');
+    document.body.style.overflow = '';
+    $('shPista').innerHTML = '';                  // nao deixar iframe vivo atras da pagina
+    $('shRelogio').classList.remove('on');
+    renderTabs();
   }
 
   document.addEventListener('visibilitychange', () => {
@@ -649,13 +701,23 @@
   }
 
   function renderTabs() {
-    $('tabs').innerHTML = '';
-    [...C.categorias.map(c => c.nome), '★ Favoritos', ...(SH ? ['Shorts'] : [])].forEach((nome, i) => {
+    const tabs = $('tabs');
+    tabs.innerHTML = '';
+    // Shorts vem primeiro, de proposito: na barra com overflow-x a ultima aba fica
+    // rolada para fora da tela no celular, e era onde ela estava.
+    if (SH) {
+      const b = document.createElement('button');
+      b.textContent = 'Shorts'; b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', shAberto);
+      b.onclick = () => shAberto ? shFecha() : shAbre();
+      tabs.appendChild(b);
+    }
+    [...C.categorias.map(c => c.nome), '★ Favoritos'].forEach((nome, i) => {
       const b = document.createElement('button');
       b.textContent = nome; b.setAttribute('role', 'tab');
-      b.setAttribute('aria-selected', i === current);
-      b.onclick = () => { current = i; showWatched = false; render(); };
-      $('tabs').appendChild(b);
+      b.setAttribute('aria-selected', !shAberto && i === current);
+      b.onclick = () => { if (shAberto) shFecha(); current = i; showWatched = false; render(); };
+      tabs.appendChild(b);
     });
   }
 
@@ -683,9 +745,6 @@
 
   function render() {
     renderTabs();
-    if (current !== iShorts && shAtivo !== -1) shSolta();     // saiu da aba: solta o player
-    $('shRelogio')?.classList.toggle('on', false);
-    if (current === iShorts) return shRender();
     const seen = watched();
     const ehFav = current === iFav;
     const all = ehFav ? favs.lista() : (results[current]?.videos ?? []);
@@ -878,8 +937,10 @@
   });
   $('search').addEventListener('click', e => { if (e.target === $('search')) $('search').close(); });
   $('search').addEventListener('close', () => render());   // atualiza os "vistos" no grid
+  $('shVolta').onclick = () => shFecha();
   addEventListener('keydown', e => {
     const digitando = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+    if (e.key === 'Escape' && shAberto) { e.preventDefault(); return shFecha(); }
     if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); abrirBusca(); }
     else if (e.key === '/' && !digitando && !$('search').open) { e.preventDefault(); abrirBusca(); }
   });
@@ -919,6 +980,13 @@
     indexar();
   })();
 })();
+</script>
+<script>
+  // Sem o service worker o Chrome no Android não oferece instalar. Só em contexto seguro;
+  // falha de registro é silenciosa de propósito: o site funciona igual sem ele.
+  if ('serviceWorker' in navigator
+      && (location.protocol === 'https:' || location.hostname === 'localhost'))
+    addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 </script>
 </body>
 </html>
