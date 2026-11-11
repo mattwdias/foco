@@ -25,6 +25,7 @@ YouTube, em categorias, para fugir de recomendação e rolagem infinita.
 | `porCanal` | Quantos vídeos **aparecem** de cada canal (hoje 15) |
 | `buscaPorCanal` | Quantos ficam **guardados** por canal, para a busca (hoje 100) |
 | `cacheHoras` | TTL do cache de emergência no navegador, usado só se o `data.json` faltar |
+| `shorts` | Aba Shorts: `minutos` de orçamento, `esperaHoras` de bloqueio, `baralho` (quantos por sessão) e `guardar` (quantos o job arquiva por canal). Apagar o bloco remove a aba |
 | `musica` | Player discreto no canto. Apagar o bloco desliga |
 | `favoritosIniciais` | Vídeos que entram nos favoritos na primeira visita |
 | `categorias` | Lista de categorias, cada uma com seus canais |
@@ -56,7 +57,9 @@ Depois: inserir em `categorias`, rodar `node scripts/build-feed.mjs`, commitar
 ## data.json
 
 ```json
-{ "gerado": "<ISO>", "canais": { "<UC…>": [ { "id", "title", "channel", "published" } ] } }
+{ "gerado": "<ISO>",
+  "canais": { "<UC…>": [ { "id", "title", "channel", "published" } ] },
+  "shorts": { "<UC…>": [ { "id", "title", "channel", "published" } ] } }
 ```
 
 Regras do gerador, que importam para não quebrar nada:
@@ -68,6 +71,24 @@ Regras do gerador, que importam para não quebrar nada:
 - **Só reescreve quando a lista muda.** O campo `gerado` mudaria a cada rodada e geraria
   commit de 3 em 3 horas, então a comparação ignora ele e olha só `canais`.
 - **Canal retirado do config deixa de ser guardado** na próxima rodada.
+
+## Como os Shorts chegam, sem chave de API
+
+O RSS não informa duração, então o short sai **por eliminação**, com os mesmos feeds que já
+funcionam. `shortsDoCanal()` tenta, nesta ordem:
+
+1. **`playlist_id=UUSH…`** — a playlist de shorts do canal. Quando existe, resolve direto.
+2. **Eliminação:** `channel_id=…` menos `playlist_id=UULF…` menos `playlist_id=UULV…`.
+   O feed do canal traz os uploads mais recentes misturados; um vídeo longo que está entre os
+   mais recentes está necessariamente na UULF, e live está na UULV. **A sobra é short.**
+3. **API**, só se o secret `YOUTUBE_API_KEY` existir: `playlistItems` da UUSH, páginas de 50.
+
+O log diz qual caminho venceu (`via UUSH`, `via eliminação`, `via api UUSH`).
+
+**Se a UULF falhar, o passo 2 aborta de propósito** e o canal fica com os shorts que já tinha.
+Marcar vídeo longo como short sujaria o baralho, e short errado é pior do que short nenhum.
+É exatamente por isso que a UULF excluir Shorts "de graça" deixou de ser só economia: é o
+discriminador. Se o YouTube mudar esse comportamento, a eliminação para de valer.
 
 ## O limite dos 15 e a chave de API
 
@@ -135,6 +156,10 @@ Os proxies são rede de segurança, não o caminho normal.
 | `tema` | `light` ou `dark`. Ausente = segue o navegador |
 | `visao` | `raias` quando agrupado por canal. Ausente = grade |
 | `musica` | `on`, `off` ou `min` |
+| `shortsSaldo` | Milissegundos de Shorts que ainda restam na sessão. Gravado a cada segundo |
+| `shortsAte` | Timestamp em que o bloqueio de Shorts expira. `0` = liberado |
+| `shortsBaralho` | IDs do baralho da sessão, para recarregar a página não reembaralhar |
+| `shortsVistos` | Shorts já tocados, últimos 300, para o baralho não repetir |
 
 Favoritos guardam cópia do vídeo de propósito: assim o favorito sobrevive quando o vídeo
 sai do arquivo de `buscaPorCanal`.
@@ -148,6 +173,12 @@ sai do arquivo de `buscaPorCanal`.
   canal na etiqueta à esquerda, em ordem alfabética. Não é o padrão; fica salvo.
 - **Tema** (`◐`): auto → claro → escuro.
 - **Favoritos:** estrela no card e botão no player.
+- **Shorts** (última aba): baralho **finito** de `baralho` shorts, embaralhado e intercalado
+  por canal, em pista vertical com encaixe. **Um player por vez:** o `IntersectionObserver`
+  diz quem está encaixado, e o `YT.Player` é criado ali e destruído ao sair — é o que permite
+  contar tempo pelos eventos de reprodução em vez de tempo de parede. O cronômetro é um fio de
+  2px acima da pista; o relógio em mm:ss só aparece no último minuto. Zerado, grava
+  `shortsAte` e a aba fecha até a espera passar.
 
 ## Convenções
 
@@ -162,6 +193,11 @@ sai do arquivo de `buscaPorCanal`.
   e o Esc. Não reintroduza `close()` no clique do backdrop do `#modal`.
 - **O `data.json` não é editado à mão.**
 - **Sem raspagem do YouTube.**
+- **O baralho de Shorts é finito.** O site promete "sem rolagem infinita" e isso vale para a
+  aba Shorts: o tempo é o formato, não um freio que corta no meio. Não transformar a pista em
+  carregamento contínuo, e não tirar o limite de tempo para "deixar escolher na hora".
+- **O cronômetro conta reprodução, não tempo de parede**, e o saldo é persistido. Trocar por
+  `setInterval` solto devolveria tempo a cada recarga e puniria quem sai da aba.
 
 ## Verificação antes de publicar
 
