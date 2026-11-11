@@ -11,6 +11,7 @@ const C = shim.CONFIG;
 
 const canais = C.categorias.flatMap(c => c.canais);
 const guardar = C.buscaPorCanal ?? 50;
+const guardarShorts = C.shorts?.guardar ?? 60;
 
 // Opcional: com um secret YOUTUBE_API_KEY o job pega até `guardar` vídeos de uma vez.
 // Sem ele, só o RSS (15 por canal) e o arquivo cresce aos poucos.
@@ -44,15 +45,40 @@ async function feed(url) {
   return parseFeed(await r.text());
 }
 
-// playlistItems da playlist UULF: 50 por página, 1 unidade de quota cada
-async function viaApi(ch) {
+const RSS = 'https://www.youtube.com/feeds/videos.xml?';
+const playlist = (pre, ch) => RSS + 'playlist_id=' + pre + ch.id.slice(2);
+
+// Shorts pelo mesmo RSS que já funciona, sem chave de API e sem raspagem.
+// Primeiro tenta a playlist de shorts (UUSH). Se ela não existir, sai por eliminação:
+// o que está no feed do canal e NÃO está na playlist de vídeo longo (UULF) nem na de
+// live (UULV) é short. O feed do canal traz os uploads mais recentes misturados, e um
+// vídeo longo entre os 15 mais recentes está necessariamente na UULF, então a sobra é short.
+async function shortsDoCanal(ch) {
+  if (APIKEY) {
+    const v = await viaApi(ch, 'UUSH', guardarShorts).catch(() => null);
+    if (v?.length) return { via: 'api UUSH', videos: v };
+  }
+  const direto = await feed(playlist('UUSH', ch)).catch(() => null);
+  if (direto?.length) return { via: 'UUSH', videos: direto };
+
+  // Sem a UULF não há como eliminar: deixar o erro subir é melhor do que marcar
+  // vídeo longo como short e sujar o baralho.
+  const todos = await feed(RSS + 'channel_id=' + ch.id);
+  const longos = await feed(playlist('UULF', ch));
+  const lives = await feed(playlist('UULV', ch)).catch(() => []);
+  const fora = new Set([...longos, ...lives].map(v => v.id));
+  return { via: 'eliminação', videos: todos.filter(v => !fora.has(v.id)) };
+}
+
+// playlistItems da playlist pedida (UULF = longos, UUSH = shorts): 50 por página, 1 unidade de quota cada
+async function viaApi(ch, prefixo = 'UULF', limite = guardar) {
   const saida = [];
   let token = '';
-  while (saida.length < guardar) {
+  while (saida.length < limite) {
     const u = new URL('https://www.googleapis.com/youtube/v3/playlistItems');
     u.searchParams.set('part', 'snippet');
-    u.searchParams.set('playlistId', 'UULF' + ch.id.slice(2));
-    u.searchParams.set('maxResults', String(Math.min(50, guardar - saida.length)));
+    u.searchParams.set('playlistId', prefixo + ch.id.slice(2));
+    u.searchParams.set('maxResults', String(Math.min(50, limite - saida.length)));
     u.searchParams.set('key', APIKEY);
     if (token) u.searchParams.set('pageToken', token);
 
@@ -76,8 +102,16 @@ async function viaApi(ch) {
 }
 
 const recente = (a, b) => new Date(b.published) - new Date(a.published);
-const out = {};
-let novos = 0, erros = 0;
+const out = {}, outShorts = {};
+let novos = 0, erros = 0, novosShorts = 0;
+
+// Mescla acumulada: o RSS só entrega os mais recentes, então o arquivo cresce a cada rodada.
+function mescla(arquivados, chegaram, ch, limite) {
+  const mapa = new Map(arquivados.map(x => [x.id, x]));
+  const antes = mapa.size;
+  for (const x of chegaram) mapa.set(x.id, { ...x, channel: x.channel || ch.nome });
+  return { lista: [...mapa.values()].sort(recente).slice(0, limite), novos: Math.max(0, mapa.size - antes) };
+}
 
 for (const ch of canais) {
   const arquivados = antigo?.canais?.[ch.id] ?? [];
@@ -87,31 +121,46 @@ for (const ch of canais) {
       ? await viaApi(ch).catch(e => { console.log(`  api indisponível (${e.message}) — usando RSS`); return []; })
       : [];
     if (!v.length) {
-      v = await feed('https://www.youtube.com/feeds/videos.xml?playlist_id=UULF' + ch.id.slice(2));
-      if (!v.length) v = await feed('https://www.youtube.com/feeds/videos.xml?channel_id=' + ch.id);
+      // a UULF pode dar 404 em canal sem vídeo longo: cair no feed do canal, como o index.html faz
+      v = await feed(playlist('UULF', ch)).catch(() => []);
+      if (!v.length) v = await feed(RSS + 'channel_id=' + ch.id);
     }
 
-    const mapa = new Map(arquivados.map(x => [x.id, x]));
-    const antes = mapa.size;
-    for (const x of v) mapa.set(x.id, { ...x, channel: x.channel || ch.nome });
-    out[ch.id] = [...mapa.values()].sort(recente).slice(0, guardar);
-    novos += Math.max(0, mapa.size - antes);
-    console.log(`ok    ${ch.nome}: ${out[ch.id].length} no arquivo (+${Math.max(0, mapa.size - antes)})`);
+    const r = mescla(arquivados, v, ch, guardar);
+    out[ch.id] = r.lista;
+    novos += r.novos;
+    console.log(`ok    ${ch.nome}: ${r.lista.length} no arquivo (+${r.novos})`);
   } catch (e) {
     erros++;
     if (arquivados.length) out[ch.id] = arquivados;   // melhor velho do que nada
     console.log(`FALHA ${ch.nome}: ${e.message}`);
+  }
+
+  // Shorts: falha aqui não derruba o canal, só deixa o baralho do dia como estava
+  const shortsAntigos = antigo?.shorts?.[ch.id] ?? [];
+  try {
+    const { via, videos } = await shortsDoCanal(ch);
+    const r = mescla(shortsAntigos, videos, ch, guardarShorts);
+    if (r.lista.length) outShorts[ch.id] = r.lista;
+    novosShorts += r.novos;
+    console.log(`  shorts ${ch.nome}: ${r.lista.length} no arquivo (+${r.novos}) via ${via}`);
+  } catch (e) {
+    if (shortsAntigos.length) outShorts[ch.id] = shortsAntigos;
+    console.log(`  shorts ${ch.nome}: FALHA ${e.message}`);
   }
 }
 
 if (!Object.keys(out).length) { console.log('nenhum canal carregou — data.json intocado'); process.exit(1); }
 
 // canais que saíram do config.js deixam de ser guardados; os que falharam já foram preservados acima
-if (antigo && JSON.stringify(antigo.canais) === JSON.stringify(out)) {
+if (antigo && JSON.stringify(antigo.canais) === JSON.stringify(out)
+          && JSON.stringify(antigo.shorts ?? {}) === JSON.stringify(outShorts)) {
   console.log('nada mudou — data.json intocado');
   process.exit(0);
 }
 
-await writeFile(ARQ, JSON.stringify({ gerado: new Date().toISOString(), canais: out }, null, 1) + '\n');
+await writeFile(ARQ, JSON.stringify({ gerado: new Date().toISOString(), canais: out, shorts: outShorts }, null, 1) + '\n');
 const total = Object.values(out).reduce((n, v) => n + v.length, 0);
+const totalShorts = Object.values(outShorts).reduce((n, v) => n + v.length, 0);
 console.log(`data.json escrito — ${Object.keys(out).length} canais, ${total} vídeos, ${novos} novo(s), ${erros} falha(s)`);
+console.log(`                   ${totalShorts} shorts em ${Object.keys(outShorts).length} canal(is), ${novosShorts} novo(s)`);

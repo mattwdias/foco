@@ -8,6 +8,16 @@ window.CONFIG = {
                         // sem ele o RSS traz 15 por rodada e o arquivo enche aos poucos.
   cacheHoras: 3,        // reaproveita a lista por X horas (deixa o site rápido)
 
+  // Aba Shorts: baralho FINITO, dos mesmos canais acima.
+  // O site não tem rolagem infinita; aqui o tempo é o formato, não o freio.
+  // Para desativar a aba: apague o bloco "shorts" inteiro.
+  shorts: {
+    minutos: 5,        // orçamento por sessão, contando só tempo de reprodução
+    esperaHoras: 1,    // depois de zerar, espera tanto antes de liberar de novo
+    baralho: 10,       // quantos shorts entram na sessão (~30s cada = ~5 min)
+    guardar: 60        // quantos shorts o job guarda por canal no data.json
+  },
+
   // Música de fundo (player discreto no canto inferior direito)
   // Para trocar a música: cole o ID do vídeo (o que vem depois de "watch?v=")
   // Para desativar: apague o bloco "musica" inteiro.

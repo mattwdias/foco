@@ -72,6 +72,33 @@
   }
   .search-btn.on { opacity: 1; color: var(--accent); }
 
+  /* ---- Shorts: baralho finito, rolagem com encaixe ---- */
+  .sh-wrap { max-width: 420px; margin: 0 auto; }
+  .sh-fio { height: 2px; border-radius: 2px; background: var(--seg); overflow: hidden; margin-bottom: 10px; }
+  .sh-fio i { display: block; height: 100%; background: var(--text); opacity: .22; transition: width .9s linear; }
+  .shorts { height: min(76vh, 700px); overflow-y: auto; scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch; border-radius: 18px; background: #000;
+    box-shadow: var(--shadow); scrollbar-width: none; }
+  .shorts::-webkit-scrollbar { display: none; }
+  .sh-slot { position: relative; height: 100%; scroll-snap-align: center; scroll-snap-stop: always;
+    overflow: hidden; background: #000; }
+  .sh-slot > img { width: 100%; height: 100%; object-fit: cover; filter: brightness(.5); display: block; }
+  .sh-palco { position: absolute; inset: 0; }
+  .sh-palco iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .sh-cap { position: absolute; left: 14px; right: 14px; bottom: 16px; color: #fff; pointer-events: none;
+    font-size: 14px; font-weight: 600; letter-spacing: -.01em; text-shadow: 0 1px 12px rgba(0,0,0,.8); }
+  .sh-cap span { display: block; font-weight: 400; font-size: 12px; opacity: .85; margin-top: 3px; }
+  .sh-toque { position: absolute; inset: 0; width: 100%; background: none; border: 0; cursor: pointer;
+    color: #fff; font: inherit; font-size: 15px; display: grid; place-items: center; }
+  .sh-toque b { font-weight: 500; background: rgba(0,0,0,.45); border-radius: 999px; padding: 9px 20px;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  /* o relógio só aparece no último minuto: discreto enquanto não importa */
+  .sh-relogio { position: fixed; z-index: 6; top: max(10px, env(safe-area-inset-top)); left: 50%;
+    transform: translateX(-50%); font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted);
+    background: var(--card); border: 1px solid var(--seg); border-radius: 999px; padding: 3px 11px;
+    opacity: 0; transition: opacity .4s ease; pointer-events: none; }
+  .sh-relogio.on { opacity: .9; }
+
   .msg { color: var(--muted); padding: 24px 0; }
   .end { text-align: center; margin-top: 72px; color: var(--muted); }
   .end strong { display: block; font-size: 22px; color: var(--text); font-weight: 600; letter-spacing: -.02em; margin-bottom: 6px; }
@@ -376,6 +403,238 @@
     return videos;
   }
 
+  /* ---------- Shorts: baralho finito com orçamento de tempo ---------- */
+  // O site promete "sem rolagem infinita", então o baralho é finito por construção: uns dez
+  // shorts dos mesmos canais, embaralhados, e quando acaba, acaba. O cronômetro conta tempo
+  // de REPRODUÇÃO, não de parede — parar para responder uma mensagem não queima a cota — e o
+  // saldo é gravado a cada segundo, então recarregar a página não devolve tempo. Zerado,
+  // espera `esperaHoras` para liberar. É quebra-molas, não tranca: limpar os dados do site zera.
+  const SH = C.shorts && { orcamento: (C.shorts.minutos ?? 5) * 60000,
+                           espera: (C.shorts.esperaHoras ?? 1) * 36e5,
+                           tamanho: C.shorts.baralho ?? 10 };
+  const iShorts = SH ? iFav + 1 : -1;
+
+  let shDeck = [], shAtivo = -1, shPlayer = null, shInterv = null, shUltimo = 0,
+      shGesto = false, shObs = null, shMusicaWas = false;
+
+  const shVistos = () => new Set(ls.get('shortsVistos', []));
+  const shMarca = id => { const s = shVistos(); s.add(id); ls.set('shortsVistos', [...s].slice(-300)); };
+
+  // saldo e bloqueio num lugar só, para não haver dois trechos decidindo o mesmo
+  function shEstado() {
+    const ate = ls.get('shortsAte', 0);
+    if (ate > Date.now()) return { preso: ate };
+    if (ate) { ls.set('shortsAte', 0); ls.set('shortsBaralho', []); ls.set('shortsSaldo', SH.orcamento); }
+    let saldo = ls.get('shortsSaldo', null);
+    if (typeof saldo !== 'number') { saldo = SH.orcamento; ls.set('shortsSaldo', saldo); }
+    return { saldo };
+  }
+  function shGasta(ms) {
+    const saldo = Math.max(0, ls.get('shortsSaldo', SH.orcamento) - Math.max(0, ms));
+    ls.set('shortsSaldo', saldo);
+    if (!saldo && !ls.get('shortsAte', 0)) ls.set('shortsAte', Date.now() + SH.espera);
+    return saldo;
+  }
+
+  const embaralha = a => {
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  };
+
+  function shTodos() {
+    const fora = [];
+    C.categorias.forEach(cat => cat.canais.forEach(ch =>
+      (DATA?.shorts?.[ch.id] ?? []).forEach(v => fora.push({ ...v, cat: cat.nome }))));
+    return fora;
+  }
+
+  function shMonta() {
+    const todos = shTodos();
+    if (!todos.length) return [];
+    const salvo = ls.get('shortsBaralho', []);
+    if (salvo.length) {                              // recarregar não embaralha de novo
+      const mapa = new Map(todos.map(v => [v.id, v]));
+      const deck = salvo.map(id => mapa.get(id)).filter(Boolean);
+      if (deck.length) return deck;
+    }
+    // intercala os canais, para não vir três do mesmo seguidos
+    const porCanal = new Map();
+    todos.forEach(v => {
+      const k = v.channel || '—';
+      if (!porCanal.has(k)) porCanal.set(k, []);
+      porCanal.get(k).push(v);
+    });
+    const filas = [...porCanal.values()].map(embaralha);
+    const fila = [];
+    for (let i = 0; filas.some(l => l[i]); i++) filas.forEach(l => l[i] && fila.push(l[i]));
+    const vistos = shVistos();
+    const novos = fila.filter(v => !vistos.has(v.id));
+    // só repete short já visto quando não há novo suficiente para fechar o baralho
+    const deck = (novos.length >= SH.tamanho ? novos : novos.concat(fila.filter(v => vistos.has(v.id))))
+      .slice(0, SH.tamanho);
+    ls.set('shortsBaralho', deck.map(v => v.id));
+    return deck;
+  }
+
+  function shApiPronta(cb) {
+    if (window.YT && YT.Player) return cb();
+    const antes = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { if (antes) antes(); cb(); };
+    if (!document.querySelector('script[src*="iframe_api"]')) {
+      const s = document.createElement('script');
+      s.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(s);
+    }
+  }
+
+  function shPinta(saldo) {
+    const fio = document.querySelector('.sh-fio i');
+    if (fio) fio.style.width = Math.max(0, saldo / SH.orcamento * 100) + '%';
+    const r = $('shRelogio');
+    if (r) {
+      const s = Math.ceil(Math.max(0, saldo) / 1000);
+      r.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+      r.classList.toggle('on', saldo <= 60000);
+    }
+  }
+
+  function shContaOn() {
+    if (shInterv) return;
+    shUltimo = Date.now();
+    shInterv = setInterval(() => {
+      const agora = Date.now();
+      const saldo = shGasta(agora - shUltimo);
+      shUltimo = agora;
+      shPinta(saldo);
+      if (!saldo) shAcabou();
+    }, 1000);
+  }
+  function shContaOff() {
+    if (!shInterv) return;
+    clearInterval(shInterv); shInterv = null;
+    shPinta(shGasta(Date.now() - shUltimo));        // o pedaço desde o último segundo cheio
+  }
+
+  // libera o player e devolve a música; usado ao sair da aba e ao esgotar o tempo
+  function shSolta() {
+    shContaOff();
+    shObs?.disconnect(); shObs = null;
+    if (shPlayer) { try { shPlayer.destroy(); } catch {} shPlayer = null; }
+    shAtivo = -1;
+    if (window.Musica) window.Musica.resume(shMusicaWas);
+    shMusicaWas = false;
+  }
+
+  function shAcabou() { shSolta(); render(); }
+
+  function shAtiva(i) {
+    if (i === shAtivo || !shDeck[i]) return;
+    shAtivo = i;
+    shContaOff();
+    if (shPlayer) { try { shPlayer.destroy(); } catch {} shPlayer = null; }
+    const slots = [...document.querySelectorAll('.sh-slot')];
+    slots.forEach((s, k) => { if (k !== i) s.querySelector('.sh-palco')?.remove(); });
+    const palco = document.createElement('div');
+    palco.className = 'sh-palco';
+    palco.appendChild(document.createElement('div'));
+    slots[i].appendChild(palco);
+    const v = shDeck[i];
+    shApiPronta(() => {
+      if (shAtivo !== i) return;                    // já rolou para outro antes de a API subir
+      shPlayer = new YT.Player(palco.firstChild, {
+        videoId: v.id,
+        playerVars: Object.assign({ rel: 0, modestbranding: 1, playsinline: 1, fs: 0, iv_load_policy: 3 },
+          location.protocol.startsWith('http') ? { origin: location.origin } : {}),
+        events: {
+          onReady: () => { if (shGesto) shPlayer.playVideo(); },
+          onStateChange: e => {
+            if (e.data === 1) { shMarca(v.id); shContaOn(); }
+            else shContaOff();
+            if (e.data === 0) slots[i + 1]?.scrollIntoView({ behavior: 'smooth' });   // emenda no próximo
+          }
+        }
+      });
+    });
+  }
+
+  function shRender() {
+    const grid = $('grid');
+    const est = shEstado();
+    grid.className = 'sh-wrap';
+    grid.innerHTML = '';
+    $('end').innerHTML = '';
+    $('foot').textContent = '';
+
+    if (est.preso) {
+      const falta = est.preso - Date.now();
+      const h = Math.floor(falta / 36e5), m = Math.ceil((falta % 36e5) / 6e4);
+      $('end').innerHTML = `<strong>Por hoje já deu.</strong>Os ${C.shorts.minutos ?? 5} min acabaram. `
+        + `Volta a abrir em ${h ? h + 'h' + String(m).padStart(2, '0') : m + ' min'}.`;
+      return;
+    }
+
+    shDeck = shMonta();
+    if (!shDeck.length) {
+      $('end').innerHTML = '<strong>Nenhum short no arquivo ainda.</strong>'
+        + 'O job que busca os canais precisa rodar uma vez para encher o baralho.';
+      return;
+    }
+
+    const fio = document.createElement('div');
+    fio.className = 'sh-fio';
+    fio.innerHTML = '<i></i>';
+    const pista = document.createElement('div');
+    pista.className = 'shorts';
+    shDeck.forEach((v, i) => {
+      const slot = document.createElement('div');
+      slot.className = 'sh-slot';
+      slot.innerHTML = '<img loading="lazy" alt=""><div class="sh-cap"></div>';
+      slot.querySelector('img').src = `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`;
+      slot.querySelector('.sh-cap').innerHTML = '<span></span>';
+      slot.querySelector('.sh-cap').insertBefore(document.createTextNode(v.title), slot.querySelector('.sh-cap span'));
+      slot.querySelector('.sh-cap span').textContent = [v.channel, `${i + 1} de ${shDeck.length}`].filter(Boolean).join(' · ');
+      pista.appendChild(slot);
+    });
+    grid.append(fio, pista);
+    if (!$('shRelogio')) {
+      const r = document.createElement('div');
+      r.id = 'shRelogio'; r.className = 'sh-relogio';
+      document.body.appendChild(r);
+    }
+    shPinta(est.saldo);
+
+    // o primeiro toque é o que libera som no navegador; até lá, um convite no slot ativo
+    if (!shGesto) {
+      const b = document.createElement('button');
+      b.className = 'sh-toque';
+      b.innerHTML = '<b>Toque para começar</b>';
+      b.onclick = () => {
+        shGesto = true;
+        shMusicaWas = window.Musica ? window.Musica.suspend() : false;
+        b.remove();
+        if (shPlayer) shPlayer.playVideo(); else shAtiva(0);
+      };
+      pista.firstChild.appendChild(b);
+    } else {
+      shMusicaWas = window.Musica ? window.Musica.suspend() : false;
+    }
+
+    // quem está encaixado na tela é quem toca: um player por vez, criado e destruído
+    shObs?.disconnect();
+    shObs = new IntersectionObserver(entradas => {
+      entradas.forEach(en => {
+        if (en.isIntersecting && en.intersectionRatio > .6)
+          shAtiva([...pista.children].indexOf(en.target));
+      });
+    }, { root: pista, threshold: [.61] });
+    [...pista.children].forEach(s => shObs.observe(s));
+    shAtiva(0);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && shPlayer) { try { shPlayer.pauseVideo(); } catch {} shContaOff(); }
+  });
+
   /* ---------- interface ---------- */
   function ago(iso) {
     const days = Math.round((new Date(iso) - Date.now()) / 864e5);
@@ -391,7 +650,7 @@
 
   function renderTabs() {
     $('tabs').innerHTML = '';
-    [...C.categorias.map(c => c.nome), '★ Favoritos'].forEach((nome, i) => {
+    [...C.categorias.map(c => c.nome), '★ Favoritos', ...(SH ? ['Shorts'] : [])].forEach((nome, i) => {
       const b = document.createElement('button');
       b.textContent = nome; b.setAttribute('role', 'tab');
       b.setAttribute('aria-selected', i === current);
@@ -424,6 +683,9 @@
 
   function render() {
     renderTabs();
+    if (current !== iShorts && shAtivo !== -1) shSolta();     // saiu da aba: solta o player
+    $('shRelogio')?.classList.toggle('on', false);
+    if (current === iShorts) return shRender();
     const seen = watched();
     const ehFav = current === iFav;
     const all = ehFav ? favs.lista() : (results[current]?.videos ?? []);
